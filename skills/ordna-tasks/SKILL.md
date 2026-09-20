@@ -5,7 +5,7 @@ description: How the team tracks its work on the Ordna board (https://ordna.sh):
 
 # Ordna task board
 
-The board is the team's shared, current state. Ordna (`@frehilm/ordna-cli`, https://ordna.sh) stores each card as a markdown file `tasks/T-nnn.md`. The upstream agent guide is `AGENTS.md` in the project root. **The model below wins over `AGENTS.md` where they differ.** There is one card per user story (no epic, `dev`, `verify` or `defect` cards), and the agent who owns it right now is the assignee.
+The board is the team's shared, current state. Ordna (`@frehilm/ordna-cli`, https://ordna.sh) stores each card as a markdown file `tasks/T-nnn.md`. The upstream agent guide is `AGENTS.md` in the project root. **This project's model (below and in `CLAUDE.md`, "Task board (Ordna)") wins where the two differ.** It replaces the kit's epic > story > `dev`/`verify`/`defect` hierarchy: there is one card per user story, and the agent who owns it right now is the assignee.
 
 Storage must be `file`: agents read and edit the markdown files. The columns are `todo`, `requirements`, `design`, `test-planning`, `development`, `verification`, `done` (`statuses` in `.ordna/config.yaml`): one per agent role, so the board shows which agent has a story.
 
@@ -96,4 +96,4 @@ ordna move T-012 verification   rejected for done if a dependency is not done
 ordna web                       local Kanban in the browser (columns = statuses, assignee on each card)
 ```
 
-**Known gap:** `.claude/scripts/check-board.sh` still checks the previous model (epics, `dev`/`verify` tasks, the `review` status) and has not been updated to this one; its errors about those are expected, and the lead judges the board by this skill.
+`.claude/scripts/check-board.sh` still checks the kit's old model until the user updates it; the lead judges the board by `CLAUDE.md` and this skill.

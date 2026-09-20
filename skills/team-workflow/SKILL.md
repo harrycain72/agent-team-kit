@@ -7,7 +7,7 @@ description: How the five-role team (business-analyst, architect, test-manager, 
 
 Roles: **business-analyst** (requirements), **architect** (the general architecture and each feature's technical PRD with its slice plan), **test-manager** (the test strategy, and each feature's test plan with test cases and test data), **developer** (test-first implementation), **tester** (review, acceptance, end-to-end, exploratory). The **lead** (the main session) coordinates and verifies.
 
-The work is tracked on the **Ordna board** (https://ordna.sh, `tasks/`) as one card per user story plus one requirements card per feature (no epic, `dev`, `verify` or `defect` cards). Load the `ordna-tasks` skill: it defines who creates what, and how each role moves and updates cards. The board is the current state of the project; the files below are the content.
+The work is tracked on the **Ordna board** (https://ordna.sh, `tasks/`) as one card per user story plus one requirements card per feature (`CLAUDE.md`, "Task board (Ordna)", overrides the kit's epic > story > task hierarchy). Load the `ordna-tasks` skill: it defines who creates what, and how each role moves and updates cards. The board is the current state of the project; the files below are the content.
 
 ## 0. Approval gate (the user, before any code)
 
