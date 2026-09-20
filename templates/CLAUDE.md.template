@@ -1,0 +1,37 @@
+# <Project name>
+
+## Team kit
+- agent-team-kit: <version, e.g. 0.5.0>  (pinned; bump deliberately, see the kit's CHANGELOG)
+- Common: stack-common (layout, Makefile targets, backend and frontend contracts)
+- Backend pack: stack-backend-fastapi-bce  (or stack-backend-quarkus-bce)
+- Frontend pack: stack-frontend-react  (or stack-frontend-angular)
+- Process: team-workflow (TDD by vertical slice, usable early per BL-FLOW, definition of done)
+- Task board: Ordna (https://ordna.sh), skill `ordna-tasks`; epics, stories and tasks in `tasks/`
+
+## Approval gate
+- No code, tests or configuration are written until the user has set `Status: approved` in both `docs/requirements.md` and `docs/architecture.md`. Agents never set it and never edit an approved document. Check: `.claude/scripts/check-approval.sh`.
+
+## Requirements
+- Project requirements: docs/requirements.md
+- Applied baseline: BL-API-*, BL-SEC-*, BL-A11Y-*, BL-OPS-*, BL-TEST-*, BL-FLOW-*
+- Overrides and exclusions (each with a reason):
+  - <none yet>
+
+## Task board (Ordna)
+- Tasks are markdown files in `tasks/` (`ordna list`, `ordna show <id>`); config in `.ordna/config.yaml`; upstream agent guide in `AGENTS.md`.
+- Hierarchy: epic (`E-N`) > user story (`US-N`) > task (`dev`, `verify`, `defect`), by tags and `depends_on`. See the `ordna-tasks` skill; it wins over `AGENTS.md`.
+- Every agent claims its task before starting, updates it as the work changes state, and never marks its own work `done`. Nobody runs `ordna commit`; the lead commits.
+- Check: `.claude/scripts/check-board.sh` (installed by the kit).
+
+## Documents (one authoritative file each)
+- Build specification: docs/architecture.md (design, API contract, ADRs, slice plan)
+- TDD evidence: docs/tdd-log.md
+- Test plan: docs/test-plan.md
+- arc42 (optional, summarises architecture.md): docs/arc42/
+
+## Project rules
+- <project-specific rules, one per line>
+
+## Commands
+- Start: make dev
+- Full check: make check

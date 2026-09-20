@@ -1,0 +1,46 @@
+# Changelog
+
+Semantic versioning. Projects pin a version in their `CLAUDE.md`; bump the kit only deliberately.
+
+## 0.5.0 – approval gate
+- `docs/requirements.md` and `docs/architecture.md` now start with `Status: draft`, `Approved by:` and `Approved on:`. **Only the user sets the status to approved**, by editing the file. Until both documents are approved, no agent (developer, tester, lead, any other) writes code, tests, configuration or scripts. An approved document is frozen: the user sets it back to draft to allow a change.
+- Enforced, not just written down: `hooks/require-approval.sh` (a `PreToolUse` hook on `Write|Edit|MultiEdit|NotebookEdit`, registered by `scripts/new-project.sh` in the project's `.claude/settings.json`) blocks writes outside `docs/`, `tasks/`, `.ordna/`, `CLAUDE.md`, `AGENTS.md` and `README.md` until both documents are approved; blocks agents from writing "Status: approved", from editing an approved document and from changing the hook, its settings or the check scripts. It does not see shell commands that write files, so that is forbidden in the agents' instructions and reported by `check-board.sh` (build tasks started without approval).
+- New `scripts/check-approval.sh [--status requirements|architecture] [project-dir]`: read-only, exit 0 only when both are approved. Copied to `.claude/scripts/`. `check-project.sh` checks that the hook is installed and unchanged.
+- Agents: developer and tester check approval first and stop if it is missing; analyst and architect write drafts and never approve. `team-workflow` gains section 0 and a definition-of-done item; `ordna-tasks` forbids starting build tasks before approval.
+- Upgrading a 0.4.0 project: copy `hooks/require-approval.sh` to `.claude/hooks/` and `scripts/check-approval.sh`, `scripts/check-board.sh` to `.claude/scripts/`; add the `PreToolUse` entry from `scripts/new-project.sh` to `.claude/settings.json` (merge with existing hooks); add the status header from the templates to both documents (`Status: approved` only if the user has already approved them); copy the updated agents, skills and templates; bump the pin.
+
+## 0.4.0 – Ordna task board (epics, user stories, tasks)
+- The team now tracks its work on an [Ordna](https://ordna.sh#install) board (`npm install -g @frehilm/ordna-cli`): tasks are markdown files in `tasks/`, git is the source of truth. `scripts/new-project.sh` requires `ordna`, runs `ordna init --storage=file` (a bare `ordna init` prompts and fails without a terminal, which is how agents run), sets the columns to `todo, doing, review, done` and installs the upstream agent guide (`AGENTS.md`).
+- New skill `ordna-tasks`. Ordna has no epics or subtasks, so the kit defines them: epic (`E-N`) > user story (`US-N`, = one vertical slice) > task (`dev`, `verify`, `defect`), linked by tags (`e-N`, `us-N`) and by `depends_on` with the parent depending on its children, so `ordna move` refuses to close an epic or story with open children. The skill also defines who creates what, the status protocol (claim before starting, `review` when finished, `done` only by someone other than the author, the lead closes stories and epics), how defects are raised, and that agents never run `ordna commit`.
+- New `scripts/check-board.sh [--stage requirements|design|build] [project-dir]`: read-only board check (hierarchy, dependencies, one dev and one verify task per story, statuses, assignees, unticked criteria on done items, `docs/requirements.md` versus the board). Copied into new projects as `.claude/scripts/check-board.sh`.
+- Agents: business-analyst creates epics and stories, architect creates the `dev` and `verify` tasks, developer claims, logs progress and moves to `review`, tester verifies, ticks story criteria and closes or raises defects. The business-analyst gains `Bash` (to run `ordna`) and `Edit`; the architect gains `Edit` (to add `depends_on`).
+- `team-workflow`: board outputs per stage, board rules for the lead, board items in the definition of done. Templates: epics and a board table in `requirements.md`, story and task ids in the slice table, task ids in the TDD log, a task board section in `CLAUDE.md.template`.
+- `scripts/check-project.sh` checks ordna, `.ordna/config.yaml` (file storage, `review` column), the `ordna-tasks` skill and `check-board.sh`.
+- Upgrading a 0.3.0 project: `npm install -g @frehilm/ordna-cli`; in the project run `ordna init --storage=file` and `ordna skill install`; set `statuses: [todo, doing, review, done]` in `.ordna/config.yaml`; copy `skills/ordna-tasks` to `.claude/skills/`, `scripts/check-board.sh` to `.claude/scripts/`, and the updated `agents/` and `templates/`; add the "Task board" section from `templates/CLAUDE.md.template` and bump the pin. Then have the business-analyst create stories and epics for the existing requirements, and the architect the tasks for the remaining slices; mark slices that are already built `done` after the tester verifies them.
+
+## 0.3.0 – composable stack packs
+- The single pack `stack-fastapi-react-bce` is split into a backend pack, a frontend pack and a shared pack:
+  - `stack-common`: repository layout, Makefile target names, the backend and frontend contracts, API decisions (UUID ids, hard delete, offset pagination, strict bodies, local dates in the UI), technology-neutral pitfalls.
+  - `stack-backend-fastapi-bce`: the FastAPI/BCE half of the old pack.
+  - `stack-frontend-react`: the React/shadcn half of the old pack.
+- New: `stack-backend-quarkus-bce` (Java 25, Quarkus 3.39.4, Maven wrapper, Hibernate ORM, Flyway, ArchUnit) and `stack-frontend-angular` (Angular 22.1, Material, Vitest via the Angular unit-test builder). Both authored from registry data and scaffold output, not yet built in a real project; each lists open "verify at first scaffold" items.
+- `scripts/new-project.sh`: `--stack` is replaced by `--backend` and `--frontend`; `stack-common` is always installed. It also writes `.claude/agent-team-kit.version` (`version=`, `backend=`, `frontend=`) next to the pin in `CLAUDE.md`.
+- The kit now lives in its own repository. `scripts/new-project.sh` therefore creates new projects in the directory that contains the kit by default (it used to go two levels up, assuming the kit sat inside a project).
+- New `scripts/check-project.sh <project-dir>`: read-only comparison of a project's pinned version with the kit, plus a list of agents, skills and templates that differ. Exit 0 ok, 1 needs attention, 2 error.
+- `CLAUDE.md.template`: "Stack pack" becomes "Common", "Backend pack" and "Frontend pack". `architect.md` names the packs generically.
+- Upgrading a 0.2.0 project: replace `.claude/skills/stack-fastapi-react-bce` with `stack-common`, `stack-backend-fastapi-bce` and `stack-frontend-react` from the kit, update the pack lines in `CLAUDE.md`, and bump the pinned version. Content is unchanged apart from the split and the moved common rules.
+
+## 0.2.0 – usable slices (BL-FLOW)
+- New baseline topic `BL-FLOW` (delivery flow): vertical slices only, S0 walking skeleton, order by time-to-usage, a slice is done only when usable through the real interface, one e2e test per slice, no orphaned layers.
+  Exception to the "second project" rule for adding baseline rules: added on request so features become usable as early as possible rather than backend first, frontend later.
+- `BL-TEST-8` now defers to `BL-FLOW-5` (one e2e test per slice instead of one per project).
+- `team-workflow`: slice definition references BL-FLOW; definition of done gains usability and e2e items.
+- `architecture.md` slice plan gains "User entry point" and "End-to-end test" columns.
+- Agents: one BL-FLOW line each for business-analyst, architect, developer and tester.
+- `CLAUDE.md.template` lists `BL-FLOW-*` in the applied baseline.
+- `scripts/new-project.sh`: creates a new project (copy install with the kit version pinned, chosen stack pack, starter docs, `CLAUDE.md`).
+- Upgrading a project: bump the pinned version in its `CLAUDE.md`, add `BL-FLOW-*` to the applied baseline, and add the two new columns to its slice plan.
+
+## 0.1.0 – initial extraction
+Extracted from the todo-app build (2026-09-19): four generic agents, `team-workflow`, `baseline-requirements`, `stack-fastapi-react-bce`, document templates, arc42 skeleton.
+Encodes ADR-25 (TDD by vertical slice) and the lessons of the first build.

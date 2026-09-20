@@ -1,0 +1,11 @@
+{
+  "name": "agent-team-kit",
+  "owner": { "name": "CHANGE-ME" },
+  "plugins": [
+    {
+      "name": "agent-team-kit",
+      "source": "./",
+      "description": "Agents, workflow, baseline requirements, stack packs and templates for a four-role software team."
+    }
+  ]
+}

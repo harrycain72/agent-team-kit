@@ -1,0 +1,107 @@
+# agent-team-kit
+
+A reusable four-role software team (business-analyst, architect, developer, tester), the workflow they follow, reusable baseline requirements, composable stack packs (backend, frontend, common) and document templates. Extracted from the todo-app build (2026-09-19). Version 0.5.0.
+
+## What is here
+
+```
+agents/                       generic role definitions (no project specifics)
+skills/
+  team-workflow/              stages, file handoffs, TDD by vertical slice, definition of done, lessons learned
+  ordna-tasks/                the Ordna board: epics, user stories and tasks, who creates and updates what
+  baseline-requirements/      reusable requirements with stable IDs (BL-API, BL-SEC, BL-A11Y, BL-PERF, BL-OPS, BL-TEST, BL-FLOW)
+  stack-common/               shared by every combination: repo layout, Makefile targets, backend and frontend contracts
+  stack-backend-fastapi-bce/  backend pack: FastAPI, BCE rules + import-linter contracts, test seams, pitfalls
+  stack-backend-quarkus-bce/  backend pack: Quarkus + Maven, BCE rules + ArchUnit, test seams, pitfalls
+  stack-frontend-react/       frontend pack: Vite, React, shadcn, TanStack Query
+  stack-frontend-angular/     frontend pack: Angular, Material, Vitest
+scripts/new-project.sh        create a new project from the kit (copy install, version pinned)
+scripts/check-project.sh      read-only check of a project's pinned version, board setup and drift against the kit
+scripts/check-approval.sh     read-only: have both documents been approved by the user?
+hooks/require-approval.sh     PreToolUse hook: blocks code, tests and configuration until they are
+scripts/check-board.sh        read-only check that the project's Ordna board follows the ordna-tasks conventions
+templates/                    requirements, architecture, ADR, test plan, TDD log, CLAUDE.md, arc42 skeleton
+.claude-plugin/               plugin.json + marketplace.json (to install the kit as a plugin)
+CHANGELOG.md
+```
+
+## Separation of concerns (the point of the layout)
+
+| Concern | Lives in | Changes when |
+|---|---|---|
+| Roles, process and the task board | `agents/`, `skills/team-workflow`, `skills/ordna-tasks` | you learn something about how the team works |
+| General requirements | `skills/baseline-requirements` | a second project needs a new general rule |
+| Technology choices | `skills/stack-backend-*`, `skills/stack-frontend-*` | you add or change a backend or frontend (one pack per technology) |
+| What every combination shares | `skills/stack-common` | the layout, Makefile names or the contracts between backend and frontend change |
+| Project specifics | the project's `docs/` and `CLAUDE.md` | every project |
+
+Agents never name project files; they read the project's `CLAUDE.md`, which names the kit version, the backend and frontend packs, the applied baseline and any overrides.
+
+## Approval gate
+
+The requirements and the architecture each begin with `Status: draft`. **You approve them**: read the document, replace `draft` with the word `approved` on that line and fill in `Approved by` / `Approved on`. Agents never set it. Until both are approved, a hook (`.claude/hooks/require-approval.sh`, registered in `.claude/settings.json` by `new-project.sh`) blocks every file write outside `docs/`, `tasks/`, `.ordna/`, `CLAUDE.md`, `AGENTS.md` and `README.md`, for every agent including the lead. An approved document is frozen; to change it, set it back to `draft`. State: `.claude/scripts/check-approval.sh`. Limits: the hook sees file-editing tools, not shell commands that write files (the agents are told not to, and `check-board.sh` reports build work started before approval), and it is a guardrail against agents, not against you.
+
+## Task board (Ordna)
+
+Requires [Ordna](https://ordna.sh#install): `npm install -g @frehilm/ordna-cli`. Work is tracked as **epics > user stories > tasks**, stored as markdown in the project's `tasks/`:
+
+| Level | Created by | Updated by |
+|---|---|---|
+| Epic `E-N` (tags `epic`, `e-N`) | business-analyst | lead closes it when all its stories are done |
+| Story `US-N` (one vertical slice; the analyst's criteria as checkboxes) | business-analyst | tester ticks criteria as observed; lead closes it |
+| Task `dev` / `verify` | architect | developer: claim, progress, `review`; tester: claim, verify, `done` |
+| Task `defect` | tester | developer fixes and sets `review`; tester closes |
+
+Ordna has no epics or subtasks of its own; the kit adds them with tags and `depends_on` (parent depends on children, so Ordna refuses to close a parent with open children). The rules, the status protocol and the exact commands are in `skills/ordna-tasks`. `scripts/check-board.sh --stage requirements|design|build` verifies that the roles actually did their part; the lead runs it after each stage and slice. Agents never commit, including `ordna commit`.
+
+## Starting a new project
+
+Quickest way (copy install, pins the kit version, creates the starter docs):
+
+```bash
+scripts/new-project.sh <name> [--root DIR] [--backend PACK] [--frontend PACK]
+
+# examples
+scripts/new-project.sh shop                                                       # FastAPI + React (defaults)
+scripts/new-project.sh shop --frontend stack-frontend-angular                     # FastAPI + Angular
+scripts/new-project.sh shop --backend stack-backend-quarkus-bce --frontend stack-frontend-angular
+```
+
+By default the project is created in the directory that contains this kit (so next to the kit's own repository); `--root` overrides that. It requires `ordna` on the PATH (and stops with the install command if it is missing), runs `ordna init --storage=file` in the project, sets the columns to `todo, doing, review, done`, writes `AGENTS.md`, and copies `agents/`, `team-workflow`, `ordna-tasks`, `baseline-requirements`, `stack-common`, the chosen backend and frontend packs and the templates into `<project>/.claude/`, writes `CLAUDE.md` (with the kit version pinned) and `.claude/agent-team-kit.version`, and the starter documents in `docs/`, and never runs `git init`. Then fill in `CLAUDE.md` before running any agent.
+
+To see whether an existing project is behind the kit or has drifted from it:
+
+```bash
+scripts/check-project.sh <project-dir>
+```
+
+It is read-only. It compares the project's pinned version (`CLAUDE.md` and `.claude/agent-team-kit.version`) with the kit's, checks the installed packs, and lists agents, skills and templates that differ from the kit. Exit code 0 means up to date with no differences, 1 means attention needed, 2 means a usage error. To upgrade, follow the steps in `CHANGELOG.md`.
+
+Manual steps, if you prefer:
+
+1. Make the kit available (pick one):
+   - **Plugin:** `claude plugin marketplace add <path-or-repo-of-this-kit>` then `claude plugin install agent-team-kit@agent-team-kit`.
+   - **Copy:** copy `agents/*.md` to `<project>/.claude/agents/` (or `~/.claude/agents/` for all projects) and `skills/*` to `.claude/skills/`.
+2. Copy `templates/CLAUDE.md.template` to `<project>/CLAUDE.md` and fill it in (kit version, backend and frontend packs, overrides). Copy `stack-common`, one `stack-backend-*` and one `stack-frontend-*` from `skills/`.
+3. Run the business-analyst with `templates/requirements.md`, referencing baseline IDs; then the architect with `templates/architecture.md` and `adr.md` (and `templates/arc42/` if wanted); then build slice by slice as in `skills/team-workflow`.
+4. Give each agent its instructions before it starts, and enable the tools they need to hand off.
+
+## Versioning
+
+Semantic versioning in `plugin.json` and `CHANGELOG.md`. A project pins the version in its `CLAUDE.md`. Improve the kit from what each project teaches you, and note it in the changelog.
+
+## Not verified yet (check before relying on it)
+
+- **Approval hook in Claude Code itself:** the hook script and `check-approval.sh` were tested with simulated hook input (JSON on stdin, exit 2 to block). That Claude Code invokes the hook with these exact field names (`tool_input.file_path`), matcher and `CLAUDE_PROJECT_DIR`, and that it also covers subagents, has not been observed in a live session. Start a real project, ask any agent to write a source file before approving, and confirm it is blocked.
+- **Ordna board:** verified by hand against `@frehilm/ordna-cli` 0.4.0 (`ordna --version` prints 0.0.0): `init --storage=file`, custom `review` status, tags and `-d` on `create`, `depends_on` blocking `move ... done` in the parent-depends-on-children direction, `skill install`, and `check-board.sh` on positive and negative boards. **Not verified:** that the agents follow `ordna-tasks` in a real run (that is what `check-board.sh` is for), and parallel agents editing task files at once. The web UI (`ordna web`) was not started.
+- The plugin and marketplace manifest fields (`plugin.json`, `marketplace.json`) are written from memory of the format and have never been installed. `owner.name` is a placeholder.
+- Whether plugin agents are namespaced by plugin name, and which agent frontmatter fields plugins support.
+- `SendMessage` is listed in the agents' `tools:` so they can hand off directly; that it is enough to enable messaging between agents has not been tested.
+- The skills' `description` texts drive when they are loaded; adjust after seeing how they trigger.
+- The packs describe scaffold files (compose file, Makefile, pyproject or pom, CI) but ship no code. Copy them from the todo-app once, generalise them, and add them as `skills/stack-common/scaffold/` and per-pack scaffolds.
+- `stack-backend-quarkus-bce` and `stack-frontend-angular` were written from registry data and a scratch scaffold, never built in a project. Each has a "Verify at first scaffold" list; the first project that uses them should work through it and feed the results back.
+- Only FastAPI + React has been built end to end. The other three combinations rely on the contracts in `stack-common`.
+
+## Lifecycle
+
+The kit lives in its own git repository (`agent-team-kit`), separate from any project. Tag each release (`v<version>`, matching `plugin.json` and `CHANGELOG.md`) so a project's pinned version refers to something real. Do not depend on any project for it.
