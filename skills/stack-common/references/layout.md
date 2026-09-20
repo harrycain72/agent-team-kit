@@ -11,7 +11,7 @@
 ├── .github/workflows/ci.yml # postgres service container; runs the same checks as `make check`
 ├── perf/                    # k6: script, helpers, seed.sql (own database <db>_perf)
 ├── docs/
-│   ├── requirements.md      # one authoritative file
+│   ├── business-prd.md      # one authoritative file
 │   ├── architecture.md      # build specification: design, API contract, ADRs, slice plan
 │   ├── tdd-log.md           # append-only red/green evidence per slice
 │   ├── test-plan.md

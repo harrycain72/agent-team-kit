@@ -1,13 +1,13 @@
 ---
 name: team-workflow
-description: How the four-role team (business-analyst, architect, developer, tester) works together: stage order, file-based handoffs, TDD by vertical slice, definition of done, ownership and escalation rules. Load before starting or coordinating any project with these agents.
+description: How the five-role team (business-analyst, architect, test-manager, developer, tester) works together: stage order, file-based handoffs, TDD by vertical slice, definition of done, ownership and escalation rules. Load before starting or coordinating any project with these agents.
 ---
 
 # Team workflow
 
-Roles: **business-analyst** (requirements), **architect** (design and slice plan), **developer** (test-first implementation), **tester** (review, acceptance, end-to-end, exploratory). The **lead** (the main session) coordinates and verifies.
+Roles: **business-analyst** (requirements), **architect** (the general architecture and each feature's technical PRD with its slice plan), **test-manager** (the test strategy, and each feature's test plan with test cases and test data), **developer** (test-first implementation), **tester** (review, acceptance, end-to-end, exploratory). The **lead** (the main session) coordinates and verifies.
 
-The work is tracked on the **Ordna board** (https://ordna.sh, `tasks/`) as epics, user stories and tasks. Load the `ordna-tasks` skill: it defines the hierarchy, who creates what, and how each role moves and updates tasks. The board is the current state of the project; the files below are the content.
+The work is tracked on the **Ordna board** (https://ordna.sh, `tasks/`) as one card per user story plus one requirements card per feature (no epic, `dev`, `verify` or `defect` cards). Load the `ordna-tasks` skill: it defines who creates what, and how each role moves and updates cards. The board is the current state of the project; the files below are the content.
 
 ## 0. Approval gate (the user, before any code)
 
@@ -15,11 +15,14 @@ A solution is a set of **features**; a feature is an **epic**. The requirements 
 
 | Document | Holds | Path |
 |---|---|---|
-| Overview | goal, scope, shared domain, feature index, applied baseline | `docs/requirements.md` |
-| Feature requirements, one per epic | the epic `E-N` and its user stories | `docs/features/e-N-<slug>/requirements.md` |
-| Architecture | one design for the whole solution | `docs/architecture.md` |
+| Overview | goal, scope, shared domain, feature index, applied baseline | `docs/business-prd.md` |
+| Feature business PRD, one per epic | the epic `E-N` and its user stories | `docs/features/e-N-<slug>/business-prd.md` |
+| Feature technical PRD, one per epic | that feature's data model, API, design, feature ADRs, slice plan | `docs/features/e-N-<slug>/technical-prd.md` |
+| Feature test plan, one per epic (not gated) | test cases and test data | `docs/features/e-N-<slug>/test-plan.md` |
+| Test strategy (not gated) | the general test approach for all features | `docs/test-strategy.md` |
+| Architecture | only what is general and valid for all features (layout, tooling, cross-cutting rules, general ADRs, the S0 walking skeleton) | `docs/architecture.md` |
 
-Agents write `Status: draft`. **Only the user sets it to approved**, after reading the document, by editing the file (with `Approved by` and `Approved on`). **A feature may be built only when the overview, the architecture and that feature's own requirements file are approved. Until then no agent (developer, tester, the lead, any other) writes code, tests, configuration or scripts for it.** Documents, the test plan and the board (`tasks/`) may be written meanwhile.
+Agents write `Status: draft`. **Only the user sets it to approved**, after reading the document, by editing the file (with `Approved by` and `Approved on`). **A feature may be built only when the overview, the architecture and that feature's own business PRD and technical PRD are approved. Until then no agent (developer, tester, the lead, any other) writes code, tests, configuration or scripts for it.** Documents, the test plan and the board (`tasks/`) may be written meanwhile.
 
 - Approval is per feature, so a feature the user has reviewed can be built while others are still being specified. The user approves the files one at a time.
 - The lead, when a document is finished, asks the user to review it and to set the status; it does not set it, and does not start the build without it. `.claude/scripts/check-approval.sh` reports the state of every document (exit 0 when the overview, the architecture and at least one feature are approved); `check-approval.sh --for E-N` answers for one feature (exit 0 only when that feature may be built). The developer and the tester run it with the `e-N` tag of their task.
@@ -31,18 +34,19 @@ Agents write `Status: draft`. **Only the user sets it to approved**, after readi
 
 | Stage | Owner | Input | Output (the contract) | Done when |
 |---|---|---|---|---|
-| Requirements | business-analyst | the idea, `CLAUDE.md`, baseline requirements | `docs/requirements.md` (overview, feature index) + one `docs/features/e-N-<slug>/requirements.md` per feature (all `Status: draft`) + an epic per feature and a story per `US-N` on the board | stories have testable acceptance criteria; assumptions and open questions listed; every epic has its file; `check-board.sh --stage requirements` passes |
-| Design | architect | the overview and all feature files | `docs/architecture.md` (`Status: draft`; + ADRs, slice plan) + a `dev` and a `verify` task per story | every open question resolved as an ADR; slice plan ordered; tag and package versions checked; `check-board.sh --stage design` passes |
-| Build | developer(s) | design; **overview, architecture and the feature's requirements approved by the user** | code, tests, TDD log entries; `dev` task `doing` then `review` | slice green, `make check` (or equivalent) green |
-| Verify | tester | slice + acceptance criteria | test plan, extra tests, defect tasks; story criteria ticked; `verify` and `dev` tasks `done` | each criterion pass / fail / not tested, observed not assumed |
+| Requirements | business-analyst | the idea, `CLAUDE.md`, baseline requirements | `docs/business-prd.md` (overview, feature index) + one `docs/features/e-N-<slug>/business-prd.md` per feature (all `Status: draft`) + a requirements card per feature and a story card per `US-N` on the board | stories have testable acceptance criteria; assumptions and open questions listed; every feature has its file and requirements card |
+| Design | architect | the overview and the feature's `business-prd.md` | `docs/architecture.md` (general only, `Status: draft`; + general ADRs) + a `technical-prd.md` per feature (`Status: draft`; + feature ADRs, slice plan) + the `S0` story card and, on every story card, the build checklist, verification items and notes | every open question resolved as an ADR; slice plan ordered; tag and package versions checked |
+| Test planning | test-manager | the feature's `business-prd.md` and `technical-prd.md`, `docs/architecture.md` | `docs/test-strategy.md` (general) + `test-plan.md` per feature (test cases, test data); story cards moved to `development` | every criterion has a case or a written reason; datasets defined |
+| Build | developer(s) | design; **overview, architecture and the feature's business PRD and technical PRD approved by the user** | code, tests, TDD log entries; story card `development`, then `verification` assigned to `tester` | slice green, `make check` (or equivalent) green |
+| Verify | tester | slice + acceptance criteria | execution of the feature's test plan, extra tests, defects listed on the story card; story criteria ticked (pass), or the card sent back to `development` (fail) | each criterion pass / fail / not tested, observed not assumed |
 
 Rules of the handoff:
 - **Files are the contract.** Each stage writes its result to a named file and ends its turn with a short summary and the path. Do not paste long documents into messages.
 - **One authoritative file per stage.** No draft variants left in the tree (a stray second requirements draft caused confusion once).
 - **No editing upstream.** A downstream agent that finds a defect in an upstream document reports it to the lead; the owner changes it.
 - **Independent stages run in parallel.** For example, backend and frontend developers on different slices, the tester's plan while the architect designs. Features are independent units of requirements work too: several analysts may draft different feature files at the same time, but the lead hands out the `E-N` ids first and creates the board items one feature at a time (story ids `US-N` are global, and so are Ordna's `T-nnn` ids).
-- **The lead verifies.** After every agent report, re-run the checks (tests, lint, coverage) yourself before accepting, and run `.claude/scripts/check-board.sh` to see that the board matches what was reported. Reports are claims. Only the lead moves a story or epic to `done`.
-- **The board is updated as work changes state.** Each role claims its task before starting, moves it to `review` when finished (developer) or `done` (tester, after verifying), and never marks its own work `done`. A role that finishes without updating the board has not finished.
+- **The lead verifies.** After every agent report, re-run the checks (tests, lint, coverage) yourself before accepting, and run `.claude/scripts/check-board.sh` to see that the board matches what was reported. Reports are claims. Only the lead moves a card to `done`.
+- **The board is updated as work changes state.** Each role claims the story card before starting (assignee = the current agent), hands it on when finished (developer: `verification`, assigned to `tester`; tester: back to `development` on failure) and never marks its own work `done`; the lead closes cards. A role that finishes without updating the board has not finished.
 - If agents cannot message each other, all handoffs go through the lead. Design to need few of them.
 
 ## 2. TDD by vertical slice (the default process)
@@ -70,8 +74,8 @@ Why not tester-writes-tests-first for whole layers: it serialised the work (deve
 - [ ] Usable (BL-FLOW-4): the behaviour works through the real UI, the app starts with the one dev command, and the tester observed it
 - [ ] End-to-end test for the slice exists and passes, referenced by story id (BL-FLOW-5); no orphaned endpoint or UI action (BL-FLOW-6)
 - [ ] Refactor step done; API docs and README updated if behaviour or run instructions changed
-- [ ] Board: `dev` and `verify` tasks are `done`, every story criterion is ticked by the tester, no `defect` task is open, and `check-board.sh` passes
-- [ ] The lead re-ran the check and saw it pass, then moved the story (and its epic, i.e. the feature, when all its stories are done) to `done`
+- [ ] Board: the story card's build checklist and verification items are ticked, every story criterion is ticked by the tester, and no item under `## Defects` is open
+- [ ] The lead re-ran the check and saw it pass, then moved the story card to `done`
 
 ## 4. Practical rules learned
 

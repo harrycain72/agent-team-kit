@@ -6,7 +6,7 @@
 #   project-dir   the project (default: the current directory)
 #   --stage       what has been delivered so far; later stages check more:
 #                 requirements  epics and stories exist and match the feature requirements files
-#                               (docs/features/e-N-<slug>/requirements.md, one per epic)
+#                               (docs/features/e-N-<slug>/business-prd.md, one per epic)
 #                 design        also: every story has a dev and a verify task
 #                 build         also: status and ownership rules (default)
 #
@@ -118,8 +118,8 @@ while IFS= read -r e; do
   [ -n "$e" ] || continue
   ekey="$(tag_with_prefix "$e" 'e-[0-9]+$')"
   [ -n "$ekey" ] || { bad "$(label "$e"): epic without an e-N tag"; continue; }
-  if [ "$ekey" != "e-0" ] && [ -z "$(compgen -G "$PROJ/docs/features/$ekey-*/requirements.md" || compgen -G "$PROJ/docs/features/$ekey/requirements.md" || true)" ]; then
-    bad "$(label "$e"): no requirements file docs/features/$ekey-<slug>/requirements.md (one file per feature = epic)"
+  if [ "$ekey" != "e-0" ] && [ -z "$(compgen -G "$PROJ/docs/features/$ekey-*/business-prd.md" || compgen -G "$PROJ/docs/features/$ekey/business-prd.md" || true)" ]; then
+    bad "$(label "$e"): no requirements file docs/features/$ekey-<slug>/business-prd.md (one file per feature = epic)"
   fi
   [ -n "$(field "$e" 5)" ] || bad "$(label "$e"): epic has no stories in depends_on (parent must depend on its children)"
   for d in $(field "$e" 5 | tr ',' ' '); do
@@ -166,16 +166,16 @@ if [ "$STAGE" != "requirements" ]; then
 fi
 
 # --- requirements versus board ----------------------------------------------------
-# One requirements file per feature (= epic): docs/features/e-N-<slug>/requirements.md holds the epic's
-# stories. docs/requirements.md is the solution overview and lists no stories.
+# One requirements file per feature (= epic): docs/features/e-N-<slug>/business-prd.md holds the epic's
+# stories. docs/business-prd.md is the solution overview and lists no stories.
 story_ids() { sed -e '/([Ww])[[:space:]]*$/d' -n -e 's/^###[[:space:]]*US-\([0-9][0-9]*\).*/us-\1/p' "$1" | sort -u; }  # Won't stories get no board story
 BOARD_IDS="$(echo "$STORIES" | tr '|' '\n' | tr ',' '\n' | grep -E '^us-[0-9]+$' | sort -u || true)"
 REQ_IDS=""
-OVERVIEW="$PROJ/docs/requirements.md"
+OVERVIEW="$PROJ/docs/business-prd.md"
 if [ -f "$OVERVIEW" ] && [ -n "$(story_ids "$OVERVIEW")" ]; then
-  bad "docs/requirements.md lists user stories ($(story_ids "$OVERVIEW" | tr '\n' ' ')): stories belong in docs/features/e-N-<slug>/requirements.md, one file per feature"
+  bad "docs/business-prd.md lists user stories ($(story_ids "$OVERVIEW" | tr '\n' ' ')): stories belong in docs/features/e-N-<slug>/business-prd.md, one file per feature"
 fi
-for f in "$PROJ"/docs/features/*/requirements.md; do
+for f in "$PROJ"/docs/features/*/business-prd.md; do
   [ -e "$f" ] || continue
   rel="${f#"$PROJ"/}"; dir="$(basename "$(dirname "$f")")"
   fkey="$(echo "$dir" | sed -n -E 's/^(e-[0-9]+)(-.*)?$/\1/p')"
@@ -194,7 +194,7 @@ done
 REQ_IDS="$(echo "$REQ_IDS" | grep . | sort | uniq -c | awk '$1 > 1 { print "dup " $2 } $1 == 1 { print $2 }' || true)"
 for id in $(echo "$REQ_IDS" | sed -n 's/^dup //p'); do bad "$id appears in more than one feature requirements file (story ids are unique across the solution)"; done
 REQ_IDS="$(echo "$REQ_IDS" | sed 's/^dup //' | sort -u)"
-for id in $BOARD_IDS; do echo "$REQ_IDS" | grep -qx "$id" || bad "the board has a story $id that no docs/features/*/requirements.md lists"; done
+for id in $BOARD_IDS; do echo "$REQ_IDS" | grep -qx "$id" || bad "the board has a story $id that no docs/features/*/business-prd.md lists"; done
 
 # --- status and ownership (build stage) ---------------------------------------------
 if [ "$STAGE" = "build" ]; then

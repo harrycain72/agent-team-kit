@@ -1,33 +1,38 @@
 # <Project name>
 
 ## Team kit
-- agent-team-kit: <version, e.g. 0.5.0>  (pinned; bump deliberately, see the kit's CHANGELOG)
+- agent-team-kit: <version, e.g. 0.7.0>  (pinned; bump deliberately, see the kit's CHANGELOG)
 - Common: stack-common (layout, Makefile targets, backend and frontend contracts)
 - Backend pack: stack-backend-fastapi-bce  (or stack-backend-quarkus-bce)
 - Frontend pack: stack-frontend-react  (or stack-frontend-angular)
 - Process: team-workflow (TDD by vertical slice, usable early per BL-FLOW, definition of done)
-- Task board: Ordna (https://ordna.sh), skill `ordna-tasks`; epics, stories and tasks in `tasks/`
+- Agents (`.claude/agents/`): business-analyst, architect, test-manager, developer, tester
+- Task board: Ordna (https://ordna.sh), skill `ordna-tasks`; one card per user story plus one requirements card per feature, in `tasks/`
 
 ## Approval gate
-- A feature is built only when the user has set `Status: approved` in `docs/requirements.md`, `docs/architecture.md` and that feature's own `docs/features/e-N-<slug>/requirements.md`. Until then no code, tests or configuration are written for it. Agents never set it and never edit an approved document. Check: `.claude/scripts/check-approval.sh` (all documents) or `--for E-N` (one feature).
+- A feature is built only when the user has set `Status: approved` in `docs/business-prd.md`, `docs/architecture.md`, that feature's own `docs/features/e-N-<slug>/business-prd.md` and its `technical-prd.md`. The test strategy and the test plans are not gated. Until then no code, tests or configuration are written for it. Agents never set it and never edit an approved document. Check: `.claude/scripts/check-approval.sh` (all documents) or `--for E-N` (one feature).
 
 ## Requirements
-- Solution: docs/requirements.md (overview: goal, scope, shared domain, feature index, applied baseline)
-- Features: one requirements file per feature (= epic): docs/features/e-N-<slug>/requirements.md, with its user stories
+- Solution: docs/business-prd.md (overview: goal, scope, shared domain, feature index, applied baseline)
+- Features: one requirements file per feature (= epic): docs/features/e-N-<slug>/business-prd.md, with its user stories
 - Applied baseline: BL-API-*, BL-SEC-*, BL-A11Y-*, BL-OPS-*, BL-TEST-*, BL-FLOW-*
 - Overrides and exclusions (each with a reason):
   - <none yet>
 
 ## Task board (Ordna)
-- Tasks are markdown files in `tasks/` (`ordna list`, `ordna show <id>`); config in `.ordna/config.yaml`; upstream agent guide in `AGENTS.md`.
-- Hierarchy: epic (`E-N`, = a feature with its own requirements file) > user story (`US-N`) > task (`dev`, `verify`, `defect`), by tags and `depends_on`. See the `ordna-tasks` skill; it wins over `AGENTS.md`.
-- Every agent claims its task before starting, updates it as the work changes state, and never marks its own work `done`. Nobody runs `ordna commit`; the lead commits.
-- Check: `.claude/scripts/check-board.sh` (installed by the kit).
+- Tasks are markdown files in `tasks/` (`ordna list`, `ordna show <id>`); config in `.ordna/config.yaml`; upstream agent guide in `AGENTS.md`. The `ordna-tasks` skill defines the model and wins over `AGENTS.md`.
+- Columns (`statuses` in `.ordna/config.yaml`), **one per agent role, so the board shows which agent has a story**: `todo` → `requirements` (business-analyst) → `design` (architect) → `test-planning` (test-manager) → `development` (developer) → `verification` (tester) → `done`. A card sits in the column of the agent who has it now, and the assignee is that agent (`todo` = nobody has claimed it yet; `done` = closed by the lead). An agent claims a card (`ordna assign`, `ordna move`) before working on it and hands it to the next agent's column when finished. **The `development` column is entered only by the developer's own claim, after `check-approval.sh` passes for the feature**; the test-manager hands a planned story to `todo` (assignee `developer`).
+- One card per user story (`US-N`, walking skeleton `S0`) and one requirements card per feature; no epic, `dev`, `verify` or `defect` cards. Tick criteria and checklist items one by one at the moment they hold, never in a batch.
+- Every agent claims its card before starting, updates it as the work changes state, and never moves its own work to `done`; the lead closes cards. Nobody runs `ordna commit`; the lead commits.
+- Check: `.claude/scripts/check-board.sh` (installed by the kit; it still checks the previous epic/`dev`/`verify` model, see the kit's CHANGELOG, so its errors about those are expected).
 
 ## Documents (one authoritative file each)
-- Build specification: docs/architecture.md (design, API contract, ADRs, slice plan)
+- General architecture: docs/architecture.md (**only what is valid for all features**: layout, tooling, cross-cutting rules, general ADRs, the S0 walking skeleton; nothing feature-specific)
+- Per feature, in docs/features/e-N-<slug>/: business-prd.md (business-analyst), technical-prd.md (architect: data model, API, design, feature ADRs, slice plan), test-plan.md (test-manager: test cases and test data)
+- Test strategy: docs/test-strategy.md (test-manager; general, same level as architecture.md)
+- **Every feature has exactly three documents** in docs/features/e-N-<slug>/: `business-prd.md`, `technical-prd.md`, `test-plan.md`. The test plan is specific to its feature.
+- **No overlap between `test-strategy.md` and `test-plan.md`.** The strategy holds only what is true for every feature and never names a feature, criterion id (`US-N.m`), endpoint, screen, dataset or case; it defines the levels, tools, environments, how test data is created, isolated and reset in general, naming, coverage gates, the general entry and exit criteria, defect handling and manual coverage. The plan holds only what is specific to its feature: its cases, its named datasets with exact values and volumes, its exploratory charters, its criterion-to-case traceability and its risks, and it links to the strategy instead of restating any of it (a feature-specific deviation from the strategy is stated once, in the plan, as a deviation). Each fact lives in exactly one of the two. The criterion-to-case mapping lives only in the plan.
 - TDD evidence: docs/tdd-log.md
-- Test plan: docs/test-plan.md
 - arc42 (optional, summarises architecture.md): docs/arc42/
 
 ## Project rules

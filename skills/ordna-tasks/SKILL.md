@@ -1,90 +1,99 @@
 ---
 name: ordna-tasks
-description: How the team tracks its work on the Ordna board (https://ordna.sh): epics, user stories and tasks as markdown files in tasks/, who creates them, and how each role moves and updates them. Load before creating or changing any task, and whenever you start, finish or hand off work.
+description: How the team tracks its work on the Ordna board (https://ordna.sh): one card per user story (plus one requirements card per feature) as markdown files in tasks/, moving through one column per agent (todo, requirements, design, test-planning, development, verification, done), with the current agent as assignee. Load before creating or changing any card, and whenever you start, finish or hand off work.
 ---
 
 # Ordna task board
 
-The board is the team's shared, current state. Ordna (`@frehilm/ordna-cli`, https://ordna.sh) stores each task as a markdown file `tasks/T-nnn.md`; git is the source of truth. The upstream agent guide is `AGENTS.md` in the project root (written by `ordna skill install`). It says Ordna has no epics or subtasks. **This skill adds them by convention, and it wins where the two differ.**
+The board is the team's shared, current state. Ordna (`@frehilm/ordna-cli`, https://ordna.sh) stores each card as a markdown file `tasks/T-nnn.md`. The upstream agent guide is `AGENTS.md` in the project root. **The model below wins over `AGENTS.md` where they differ.** There is one card per user story (no epic, `dev`, `verify` or `defect` cards), and the agent who owns it right now is the assignee.
 
-Install (once per machine): `npm install -g @frehilm/ordna-cli`. Project setup (done by `scripts/new-project.sh`): `ordna init --storage=file`, because agents have no terminal and a bare `ordna init` asks interactively and fails. Storage must be `file`: agents read and edit the markdown files. The board's columns are `todo`, `doing`, `review`, `done` (`statuses` in `.ordna/config.yaml`).
+Storage must be `file`: agents read and edit the markdown files. The columns are `todo`, `requirements`, `design`, `test-planning`, `development`, `verification`, `done` (`statuses` in `.ordna/config.yaml`): one per agent role, so the board shows which agent has a story.
 
-## 1. The hierarchy
+## 1. Cards
 
-| Level | Tags | Title | Created by | Meaning |
+| Card | Tags | Title | Created by | Meaning |
 |---|---|---|---|---|
-| Epic | `epic`, `e-N` | `E-N <title>` | business-analyst | a feature: a group of stories with one business goal. Has its own requirements file `docs/features/e-N-<slug>/requirements.md` |
-| Story | `story`, `us-N`, `e-N` | `US-N <title>` | business-analyst | one user story = one vertical slice (BL-FLOW-1). Its acceptance criteria are the analyst's. |
-| Task | `task`, `us-N`, `e-N`, and `dev`, `verify` or `defect` | `US-N dev: <title>` | architect (`dev`, `verify`); tester (`defect`) | one unit of work for one role |
+| Requirements card, one per feature | `requirements`, `e-N` | `E-N requirements: <feature>` | business-analyst | The analyst writes the feature's requirements and story cards; the user approves them. |
+| Story card, one per user story | `story`, `us-N`, `e-N` | `US-N <title>` | business-analyst | One vertical slice (BL-FLOW-1), built and verified on this one card. |
+| Walking skeleton | `story`, `s0`, `e-0` | `S0 <title>` | architect | Story card for the foundation slice (BL-FLOW-2). |
 
-- `US-N` and `E-N` are the ids in the requirements files: `E-N` in the feature index of `docs/requirements.md` and in the header of `docs/features/e-N-<slug>/requirements.md`, and each `US-N` in the file of its epic. Both are unique across the whole solution. Ordna's own ids (`T-nnn`) are separate and assigned in creation order. The tags `us-N` and `e-N` link the two: `ordna list -t us-3` shows a story with all its tasks.
-- The walking skeleton (BL-FLOW-2) is a story with tag `s0` instead of `us-N`, under the epic `E-0 Foundation`. The architect creates both.
-- **Roll-up is enforced by `depends_on`, parent depends on children:** the epic lists its stories, a story lists its tasks. `ordna move <parent> done` is then refused while any child is open. Never point a child at its parent.
-- Never split one behaviour by layer: a story has one `dev` task (test-first, through all layers, ending usable) and one `verify` task, not a backend task and a frontend task (BL-FLOW-1). If a slice truly needs an earlier slice, its `dev` task lists the earlier `dev` task in `depends_on`.
-- Tasks for a story are created in slice order, so ids ascend in build order.
+- There are no epic cards. A feature is the tag `e-N` and its requirements file `docs/features/e-N-<slug>/business-prd.md`; `ordna list -t e-1` shows all its cards.
+- `US-N` and `E-N` are the ids in the requirements files and are unique across the solution. Ordna's own ids (`T-nnn`) are separate and assigned in creation order.
+- Never split one behaviour by layer or by role: one story is one card, from `todo` to `done`.
+- A story lists in `depends_on` the earlier story card it builds on (US-1 on S0, US-2 on US-1). `ordna move <id> done` is refused while a dependency is not done.
 
-## 2. What goes in a task file
+## 2. What goes in a story card
 
-Frontmatter is managed by the CLI; edit `depends_on` (the only way to add dependencies after creation) and set `updated_at` to today when you edit by hand. Body sections, in this order:
+Frontmatter is managed by the CLI; edit `depends_on` by hand and set `updated_at` to today when you edit by hand. Sections, in this order:
 
-- `## Goal`: one or two sentences. Stories: the "As a … I want … so that …" text. Tasks: what this task delivers.
-- `## Acceptance Criteria`: **one checkbox per criterion**, `- [ ]`. Ticked (`- [x]`) only by the role that observed it; never tick something you did not run.
-  - Story: the analyst's Given/When/Then criteria (`US-3.1 …`), copied from the feature's requirements file (`docs/features/e-N-<slug>/requirements.md`). **Only the tester ticks these**, after seeing them pass through the real interface.
-  - `dev` task: the outer acceptance test (named), unit tests for each layer touched, full check green, usable through the entry point. **Only the developer ticks these.**
-  - `verify` task: every story criterion observed, the e2e test passes (named), exploratory notes written. **Only the tester ticks these.**
+- `## Goal`: the "As a … I want … so that …" text.
+- `## Acceptance Criteria`: the analyst's Given/When/Then criteria as `- [ ]` lines. **Only the tester ticks these**, after observing them through the real interface.
+- `## Build checklist`: the developer's items (outer acceptance test red first then green, unit tests per layer, full check green, usable through the entry point). **Only the developer ticks these.** The architect writes them when it plans the slice.
+- `## Verification`: the tester's items (every criterion observed, e2e test passes, exploratory notes written). **Only the tester ticks these.**
+- `## Defects`: one unticked `- [ ]` per defect the tester finds (steps, expected, actual, evidence); the developer ticks each once fixed test-first.
 - `## Notes`: entry point, e2e test name, layers touched, links to ADRs, assumptions.
 - `## Progress`: append-only, one line per event: `- 2026-09-20 developer: RED <test> fails (<reason>); logged in docs/tdd-log.md`. Get the date from `date +%F`.
 
+The requirements card has `## Goal`, `## Acceptance Criteria` (the analyst's items and the two approvals), `## Notes` and `## Progress`.
+
 ## 3. Status protocol
 
-| Status | Means | Set by |
-|---|---|---|
-| `todo` | planned, not started | creator |
-| `doing` | claimed and in progress | the assignee, when they start |
-| `review` | the owner's work is finished and needs someone else's check | the assignee, when finished |
-| `done` | verified by someone other than the author | see the table below |
+| Column | Agent with the card | Story card: means | Moved there by |
+|---|---|---|---|
+| `todo` | nobody yet (assignee = the next agent) | planned, no agent has claimed it | creator |
+| `requirements` | `business-analyst` | the story and its criteria are being written | the analyst |
+| `design` | `architect` | the slice is being planned in the technical PRD | the analyst (hand-off), the architect (claim) |
+| `test-planning` | `test-manager` | test cases and test data are being planned | the architect (hand-off), the test-manager (claim) |
+| `development` | `developer` | being built test-first, or fixing defects | the test-manager (hand-off), the developer (claim) |
+| `verification` | `tester` | built, full check green; being checked | the developer (hand-off) |
+| `done` | – | verified by the tester and accepted by the lead | the lead only |
 
-Claim: `ordna assign <id> <role>` then `ordna move <id> doing`, before you start work, not after. The assignee is the role name (`business-analyst`, `architect`, `developer`, `tester`). Do not work on a task assigned to another role.
+A stage with nothing to do for a story is skipped: the card is moved on with a `## Progress` line saying why.
+
+Requirements card: `requirements` (assignee `business-analyst`) = writing the files and story cards, `verification` (assignee `user`) = waiting for the user's review and approval, `done` = the overview and the feature's business PRD are approved (the lead moves it).
+
+Claim: `ordna assign <id> <role>` then `ordna move <id> <column>`, before you start work, not after. The assignee is the role name (`business-analyst`, `architect`, `developer`, `tester`) or `user`. Do not work on a card that is with another role.
 
 ## 4. Who does what, and when
 
 | Moment | Role | Board update |
 |---|---|---|
-| Requirements written | business-analyst | Creates one story per `US-N` (criteria as checkboxes, priority from MoSCoW: Must=high, Should=medium, Could=low; Won't gets no story), then one epic per `E-N` with the story ids as `-d`. Creates the epics after their stories. Puts the `T-nnn` next to each `US-N` in the board table of the feature's requirements file, and the epic's `T-nnn` in its header and in the feature index of `docs/requirements.md`. |
-| Slice plan written | architect | Creates `E-0` and the `s0` story, then for every story a `dev` and a `verify` task (Goal, criteria, Notes with entry point and e2e test name), then adds the task ids to each story's `depends_on` and the story ids to the epic's. Puts story and task ids in the slice table of `docs/architecture.md`. |
-| Slice starts | developer | Claims the `dev` task and moves it to `doing`. If the story or epic is still `todo`, moves it to `doing` too (whoever starts the first task does). |
-| Each red and green | developer | Appends a `## Progress` line; ticks `dev` criteria as they hold. |
-| Slice finished, full check green | developer | Moves the `dev` task to `review`. Tells the lead and the tester. Does **not** mark it `done`. |
-| Verification | tester | Claims the `verify` task, moves it to `doing`. Ticks the story's criteria one by one as observed. |
-| Slice passes | tester | Moves the `verify` task and the `dev` task to `done`, appends a `## Progress` line with the evidence, and reports to the lead. |
-| Slice fails | tester | For each defect: `ordna create "US-N defect: <title>" -t task -t defect -t us-N -t e-N -a developer -p high`, describes it in the file (steps, expected, actual, evidence), adds its id to the story's `depends_on`, and moves the `dev` task back to `doing`. Leaves the story's failed criteria unticked. |
-| Defect fixed | developer | Fixes it test-first (the red test first), moves the defect task to `review`, and the `dev` task back to `review` once no defect for the story is `todo` or `doing`. |
-| Defect verified | tester | Re-checks, moves the defect task to `done`, and continues as for "Slice passes". |
-| Slice accepted | lead | Re-runs the checks, runs `.claude/scripts/check-board.sh`, moves the story to `done` (Ordna refuses while a task is open), and the epic once every story is done. |
-| Requirement changes | business-analyst | Once a requirements file (overview or feature) is approved it is frozen: the user must reopen it (status back to draft) before the analyst changes it. Then edits the story's Goal and criteria and appends a `## Progress` line; tells the architect. A story that is already `done` is not reopened: create a new story instead. |
+| Feature requirements start | business-analyst | Creates the requirements card, assigns it to itself, moves it to `requirements`. |
+| Requirements written | business-analyst | Creates one story card per `US-N` (criteria as checkboxes, priority from MoSCoW: Must=high, Should=medium, Could=low; Won't gets no card), in `requirements`, assigned to itself; when the requirements are complete moves them to `design`, assigned to `architect`. Moves the requirements card to `verification` and assigns it to `user`. Puts the `T-nnn` of each card into the feature file's board table and feature index. |
+| Slice plan written | architect | Claims story cards in `design` (assignee `architect`; creates `S0` there). Plans each slice in the feature's `technical-prd.md`, adds `## Build checklist`, `## Verification` and `## Notes` to the card and sets `depends_on`; puts the card ids in the slice table. Moves the card to `test-planning`, assigned to `test-manager`. |
+| Test plan written | test-manager | Claims the card in `test-planning`, writes its cases and test data into the feature's `test-plan.md` (and `docs/test-strategy.md` once), appends a `## Progress` line with the case ids, moves the card to `development`, assigned to `developer`. |
+| Approval | lead | When `check-approval.sh` shows the overview and the feature file approved, moves the requirements card to `done`. |
+| Slice starts | developer | Runs the approval check for the card's feature, claims the card (`ordna assign … developer`, `ordna move … development`). |
+| Each red and green | developer | Appends a `## Progress` line; ticks Build checklist items as they hold. |
+| Slice finished, full check green | developer | Moves the card to `verification`, assigns it to `tester`, tells the lead and the tester. Does **not** move it to `done`. |
+| Slice passes | tester | Ticks the story criteria and the Verification items one by one as observed, appends the evidence to `## Progress`, reports to the lead. The card stays in `verification`. |
+| Slice fails | tester | Adds each defect as an unticked `- [ ]` under `## Defects`, leaves the failed criteria unticked, moves the card to `development`, assigns it to `developer`, reports to the lead. |
+| Defects fixed | developer | Fixes each test-first (the red test first), ticks the defect, and hands the card back to `verification` and `tester` once none is open. |
+| Slice accepted | lead | Re-runs the checks, then moves the card to `done`. |
+| Requirement changes | business-analyst | Once a requirements file is approved it is frozen: the user must reopen it (status back to draft) first. Then the analyst edits the story's Goal and criteria and appends a `## Progress` line, and tells the architect. A story that is already `done` is not reopened: create a new one. |
 
 Rules:
-- **Update the board when the work changes state, not at the end.** A stale board is worse than none: the lead and the other roles decide from it.
-- **No `dev`, `verify` or `defect` task moves to `doing` before the user has approved `docs/requirements.md`, `docs/architecture.md` and the requirements file of the task's feature (its `e-N` tag)** (team-workflow, section 0; check with `.claude/scripts/check-approval.sh --for E-N`). Tasks may be created and left in `todo` meanwhile; `check-board.sh` reports started build work without approval. `E-0 Foundation` tasks need the overview, the architecture and any one approved feature.
-- **Nobody moves their own work to `done`.** The developer stops at `review`; the tester closes `dev`, `verify` and `defect` tasks; the lead closes stories and epics.
-- Never delete a task or renumber ids. Cancel by appending a `## Progress` line and adding the tag `cancelled` (edit the frontmatter); a cancelled task is moved to `done`.
-- **Do not run `ordna commit` or `git commit`** unless the user asked; changed `tasks/` files stay in the working tree for the lead to commit (the kit's rule that agents never commit). Ordna does not auto-commit either.
-- Only one agent creates tasks at a time (creation is stage-bound: analyst, then architect; defects come from the tester). After `ordna create`, read the printed id back before using it. If two files share an id after a merge, the lead resolves it; Ordna never renumbers.
-- Edit only what your role owns (section 4). Parallel agents editing different task files is fine; do not edit a task file another role is working on except to add a defect dependency or a `## Progress` line.
-- Read a task with `ordna show <id>` or the file itself before changing it, so nobody's edits are overwritten.
+- **Update the board when the work changes state, not at the end.** A stale board is worse than none. That includes the checkboxes: tick each item (`- [x]`) the moment you have observed it hold, with a `## Progress` line as evidence, never in a batch when you finish. Never tick what you did not run, and never tick an item another role owns.
+- **A story card moves to `development` only when the user has approved `docs/business-prd.md`, `docs/architecture.md` and the feature's requirements file** (check with `.claude/scripts/check-approval.sh --for E-N`; for `S0`, which has no feature file, run the plain `.claude/scripts/check-approval.sh`). Cards may be created and left in `todo` meanwhile.
+- **Nobody moves their own work to `done`.** The developer stops at `verification`, the tester stops after ticking; the lead closes cards.
+- Never delete a card or renumber ids. Cancel by appending a `## Progress` line and adding the tag `cancelled`; a cancelled card is moved to `done`.
+- **Do not run `ordna commit` or `git commit`** unless the user asked; changed `tasks/` files stay in the working tree.
+- Only one agent creates cards at a time (creation is stage-bound: analyst, then architect). After `ordna create`, read the printed id back before using it.
+- Edit only what your role owns (section 2). Read a card with `ordna show <id>` or the file itself before changing it, so nobody's edits are overwritten.
 
 ## 5. Commands
 
 ```
 ordna list                      the board
-ordna list -t us-3              everything belonging to story US-3
-ordna list -s review            work waiting for a check
-ordna list -a developer         one role's tasks
-ordna show T-012                one task in full
-ordna create "US-3 dev: ..." -t task -t dev -t us-3 -t e-1 -p high -d T-010
-ordna assign T-012 developer
-ordna move T-012 doing          rejected if a dependency is not done (for done)
-ordna web                       optional local Kanban in the browser
+ordna list -t us-3              the card of story US-3
+ordna list -t e-1               every card of feature E-1
+ordna list -s verification      work waiting for the tester
+ordna list -a developer         one role's cards
+ordna show T-012                one card in full
+ordna create "US-3 <title>" -t story -t us-3 -t e-1 -a developer -p high
+ordna assign T-012 tester
+ordna move T-012 verification   rejected for done if a dependency is not done
+ordna web                       local Kanban in the browser (columns = statuses, assignee on each card)
 ```
 
-`.claude/scripts/check-board.sh [project-dir]` is a read-only consistency check (hierarchy, roll-up, statuses, ownership, approval per feature, and the feature requirements files vs. the board: every epic has its file, every story sits in the file of its epic). The lead runs it after every stage and every slice.
+**Known gap:** `.claude/scripts/check-board.sh` still checks the previous model (epics, `dev`/`verify` tasks, the `review` status) and has not been updated to this one; its errors about those are expected, and the lead judges the board by this skill.

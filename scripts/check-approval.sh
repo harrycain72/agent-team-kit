@@ -3,8 +3,8 @@
 #
 # Usage: scripts/check-approval.sh [--status DOC | --for E-N | --approved-features] [project-dir]
 #
-# Documents: docs/requirements.md (solution overview), docs/architecture.md, and one
-# docs/features/e-N-<slug>/requirements.md per feature (= epic). A document is approved when its
+# Documents: docs/business-prd.md (solution overview), docs/architecture.md, and one
+# docs/features/e-N-<slug>/business-prd.md per feature (= epic). A document is approved when its
 # first "Status:" line says "approved". Only the user sets that line, by editing the file; agents
 # write "Status: draft" and never change it to approved.
 #
@@ -46,12 +46,12 @@ file_status() {  # file_status <path> -> approved | <written value> | no-status 
   echo "${v:-no-status}"
 }
 
-feature_file() {  # feature_file <e-N | dir name> -> path of its requirements.md, or nothing
+feature_file() {  # feature_file <e-N | dir name> -> path of its business-prd.md, or nothing
   local k f
   k="$(echo "$1" | tr 'A-Z' 'a-z')"
-  [ -f "$FEATURES/$1/requirements.md" ] && { echo "$FEATURES/$1/requirements.md"; return; }
+  [ -f "$FEATURES/$1/business-prd.md" ] && { echo "$FEATURES/$1/business-prd.md"; return; }
   case "$k" in e-[0-9]*) ;; *) return 0 ;; esac
-  for f in "$FEATURES/$k"/requirements.md "$FEATURES/$k"-*/requirements.md; do
+  for f in "$FEATURES/$k"/business-prd.md "$FEATURES/$k"-*/business-prd.md; do
     [ -f "$f" ] && { echo "$f"; return; }
   done
   return 0
@@ -60,14 +60,15 @@ feature_file() {  # feature_file <e-N | dir name> -> path of its requirements.md
 feature_ids() {  # feature_ids -> the e-N key of every feature directory, sorted
   local d
   for d in "$FEATURES"/*/; do
-    [ -f "${d}requirements.md" ] || continue
+    [ -f "${d}business-prd.md" ] || continue
     basename "$d" | sed -n -E 's/^(e-[0-9]+)(-.*)?$/\1/p'
   done | sort -t- -k2 -n
 }
 
 doc_status() {  # doc_status <requirements | architecture | e-N | dir> -> one word
   case "$1" in
-    requirements|architecture) file_status "$PROJ/docs/$1.md" ;;
+    requirements) file_status "$PROJ/docs/business-prd.md" ;;
+    architecture) file_status "$PROJ/docs/architecture.md" ;;
     *) local f; f="$(feature_file "$1")"; [ -n "$f" ] && file_status "$f" || echo missing ;;
   esac
 }
@@ -85,14 +86,14 @@ line() {  # line <label> <status> -> prints, returns 1 if not approved
 }
 
 RC=0
-line docs/requirements.md "$(doc_status requirements)" || RC=1
+line docs/business-prd.md "$(doc_status requirements)" || RC=1
 line docs/architecture.md "$(doc_status architecture)" || RC=1
 
 if [ "$MODE" = "for" ]; then
   K="$(echo "$ARG" | tr 'A-Z' 'a-z')"
   case "$K" in e-[0-9]*) ;; *) die "expected an epic id such as E-3, got: $ARG" ;; esac
   F="$(feature_file "$K")"
-  if [ -n "$F" ]; then L="${F#"$PROJ"/}"; else L="docs/features/$K-<slug>/requirements.md"; fi
+  if [ -n "$F" ]; then L="${F#"$PROJ"/}"; else L="docs/features/$K-<slug>/business-prd.md"; fi
   line "$L" "$(doc_status "$K")" || RC=1
   if [ "$RC" -eq 0 ]; then echo "Result: approved, $ARG may be built"
   else echo "Result: NOT approved. No code, tests or configuration may be written for $ARG yet."; fi
@@ -106,7 +107,7 @@ for k in $(feature_ids); do
   if [ "$s" = "approved" ]; then OK=$((OK + 1)); APPROVED="$APPROVED $k"; echo "  ${f#"$PROJ"/}: approved"
   else echo "  ${f#"$PROJ"/}: $s (waiting; the user must set 'Status: approved' in the file)"; fi
 done
-[ "$N" -gt 0 ] || echo "  ! no feature requirements yet (docs/features/e-N-<slug>/requirements.md)"
+[ "$N" -gt 0 ] || echo "  ! no feature requirements yet (docs/features/e-N-<slug>/business-prd.md)"
 
 if [ "$RC" -eq 0 ] && [ "$OK" -gt 0 ]; then
   echo "Result: building may start for:$APPROVED ($OK of $N features approved; the others wait)"

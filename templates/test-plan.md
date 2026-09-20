@@ -1,24 +1,39 @@
-# <Project> – Test plan
+# <Project> – <Feature title> – Test plan
 
-## 1. Entry and exit criteria
-Prerequisites (docker compose up, test database), coverage gates, evidence of red before green, suite run twice in random order.
+<!-- Written by the test-manager. Save as docs/features/e-<N>-<slug>/test-plan.md, next to the feature's business-prd.md and technical-prd.md. Feature-specific; the general approach is in docs/test-strategy.md (do not repeat it). Executed by the developer (TDD tests, one e2e per slice) and the tester (acceptance, e2e, exploratory). -->
 
-## 2. Test data
-## 3. Acceptance criteria to test cases
-| Feature (E-N) | Criterion (US-n.m or BL-ID) | Case id | Level (unit / API / component / e2e) | Preconditions | Steps | Expected |
-|---|---|---|---|---|---|---|
+Epic: E-<N>
+Business PRD: docs/features/e-<N>-<slug>/business-prd.md
+Technical PRD: docs/features/e-<N>-<slug>/technical-prd.md
+Test strategy: docs/test-strategy.md
 
-## 4. Unit tests (separate from integration and e2e)
-Backend by layer; frontend components, hooks, API client. Module-to-test-file traceability.
+## 1. Scope, entry and exit criteria
+What is tested, what is not (and why); prerequisites; when the feature's stories may be accepted.
 
-## 5. Integration tests (real database)
-## 6. End-to-end and exploratory
-One row per slice (BL-FLOW-4, BL-FLOW-5): the user entry point, the e2e test, and whether the tester observed it working through the real UI. Also list any endpoint or UI action without a counterpart (BL-FLOW-6).
+## 2. Test cases
+One row per case. Every criterion `US-N.m` of the business PRD has at least one case, or a row in section 5 saying it is not tested and why. Cases state exact expected results, with the wording of the requirements.
 
-| Slice | Feature (E-N) | User entry point | E2E test | Observed via real UI (pass / fail / not tested) |
+| Case id | Criterion | Level (unit / API / component / e2e / manual) | Preconditions | Test data | Steps | Expected result | Automated by |
+|---|---|---|---|---|---|---|---|
+
+## 3. Test data
+Named datasets with exact values, how each is created and reset (unique database per run). Large or generated data goes in `docs/features/e-<N>-<slug>/test-data/` and is referenced here.
+
+| Dataset | Purpose | Values / volume | How created and reset | Used by cases |
 |---|---|---|---|---|
-## 7. Non-functional (accessibility, responsiveness, performance with k6, security)
-## 8. Risks and edge cases
-## 9. To confirm against architecture.md
-| Id | Item | Decision (ADR) |
+| valid | | | | |
+| boundary | | | | |
+| invalid | | | | |
+| hostile (markup, NUL, emoji, very long) | | | | |
+| volumes (0, 1, page size, page size + 1, many) | | | | |
+
+## 4. Exploratory charters
+One line each: mission, area, what to vary, what to look for.
+
+## 5. Traceability
+| Criterion | Cases | Status (planned / not tested, reason) |
 |---|---|---|
+
+## 6. Risks and edge cases
+
+## 7. Open points for the analyst or architect

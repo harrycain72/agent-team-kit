@@ -68,7 +68,7 @@ cp -r "$KIT/skills/team-workflow" "$KIT/skills/ordna-tasks" "$KIT/skills/baselin
 cp "$KIT/scripts/check-board.sh" "$KIT/scripts/check-approval.sh" "$DEST/.claude/scripts/"
 
 # The approval gate: a hook that blocks file-editing tools until the user has approved
-# the requirements (overview and feature files) and docs/architecture.md (see team-workflow, section 0).
+# the business PRDs (overview and feature files), docs/architecture.md and the feature's technical PRD (see team-workflow, section 0).
 cp "$KIT/hooks/require-approval.sh" "$DEST/.claude/hooks/"
 cat > "$DEST/.claude/settings.json" <<'JSON'
 {
@@ -86,20 +86,23 @@ cat > "$DEST/.claude/settings.json" <<'JSON'
 JSON
 
 # Ordna board: file storage (agents edit the markdown; a bare "ordna init" prompts and fails without a
-# terminal), a review column between doing and done, and the upstream agent guide (AGENTS.md).
+# terminal), one column per agent role, and the upstream agent guide (AGENTS.md).
+STATUSES="todo, requirements, design, test-planning, development, verification, done"
 (cd "$DEST" && ordna init --storage=file >/dev/null && ordna skill install >/dev/null)
-sed -i 's/^statuses:.*/statuses: [todo, doing, review, done]/' "$DEST/.ordna/config.yaml"
-grep -q '^statuses: \[todo, doing, review, done\]' "$DEST/.ordna/config.yaml" || die "could not set the board statuses in $DEST/.ordna/config.yaml"
+sed -i "s/^statuses:.*/statuses: [$STATUSES]/" "$DEST/.ordna/config.yaml"
+grep -qF "statuses: [$STATUSES]" "$DEST/.ordna/config.yaml" || die "could not set the board statuses in $DEST/.ordna/config.yaml"
 
 # Full template set for the agents (adr.md, arc42 skeleton, ...).
 cp -r "$KIT"/templates/. "$DEST/.claude/templates/"
 rm -f "$DEST/.claude/templates/CLAUDE.md.template"
 
-# Starter documents, one authoritative file each, with the project name filled in. docs/requirements.md is
-# the solution overview; every feature (epic) gets its own docs/features/e-N-<slug>/requirements.md, which
-# the business-analyst creates from templates/feature-requirements.md.
-for f in requirements.md architecture.md test-plan.md tdd-log.md; do
-  sed "s/<Project>/$NAME/g" "$KIT/templates/$f" > "$DEST/docs/$f"
+# Starter documents, one authoritative file each, with the project name filled in. docs/business-prd.md is
+# the solution overview (template requirements.md), docs/architecture.md holds only what is general and
+# docs/test-strategy.md is the general test approach. Every feature (epic) gets its own directory
+# docs/features/e-N-<slug>/ with business-prd.md (business-analyst, from feature-requirements.md),
+# technical-prd.md (architect) and test-plan.md (test-manager).
+for pair in requirements.md:business-prd.md architecture.md:architecture.md test-strategy.md:test-strategy.md tdd-log.md:tdd-log.md; do
+  sed "s/<Project>/$NAME/g" "$KIT/templates/${pair%%:*}" > "$DEST/docs/${pair##*:}"
 done
 touch "$DEST/docs/features/.gitkeep"
 
@@ -123,23 +126,25 @@ Created $DEST (agent-team-kit $VERSION)
   frontend pack: $FRONTEND
   version pinned in CLAUDE.md and .claude/agent-team-kit.version
   Approval gate: hook in .claude/settings.json blocks code until you approve the overview, the architecture
-                 and at least one feature
-  Ordna board: tasks/ (columns todo, doing, review, done), AGENTS.md, skill ordna-tasks
+                 and at least one feature (its business PRD and technical PRD)
+  Ordna board: tasks/ (columns $STATUSES), AGENTS.md, skill ordna-tasks
 
 Next steps:
   1. Edit $DEST/CLAUDE.md: overrides with reasons, project rules, commands.
      Do this before running any agent.
-  2. Run the business-analyst -> docs/requirements.md (overview, feature index), one
-     docs/features/e-N-<slug>/requirements.md per feature (= epic), and epics and stories on the board.
-     Then: .claude/scripts/check-board.sh --stage requirements
-  3. Run the architect -> docs/architecture.md plus a dev and a verify task per story;
-     check S0 is a walking skeleton and every slice has a user entry point (BL-FLOW).
-     Then: .claude/scripts/check-board.sh --stage design
+  2. Run the business-analyst -> docs/business-prd.md (overview, feature index), one
+     docs/features/e-N-<slug>/business-prd.md per feature (= epic), a requirements card per feature and a
+     story card per user story on the board.
+  3. Run the architect -> docs/architecture.md (general only, incl. the S0 walking skeleton) and one
+     technical-prd.md per feature with its slice plan; check S0 is a walking skeleton and every slice has a
+     user entry point (BL-FLOW). Then the test-manager -> docs/test-strategy.md and one test-plan.md per feature.
   4. YOU review the documents and set "Status:" to the word approved in each file, and fill in
-     Approved by / on: docs/requirements.md, docs/architecture.md and every feature you want built.
+     Approved by / on: docs/business-prd.md, docs/architecture.md and, for every feature you want built,
+     its business-prd.md and technical-prd.md. The test strategy and the test plans are not gated.
      Until then the hook blocks all code, tests and configuration; a feature is built only once its own
-     file is approved. State: .claude/scripts/check-approval.sh  (or --for E-N)
+     files are approved. State: .claude/scripts/check-approval.sh  (or --for E-N)
   5. Build slice by slice (developer), verify each slice through the real UI (tester);
-     agents update their tasks as they go. Watch the board with: ordna list  (or ordna web).
+     agents move the story card to their column and update it as they go.
+     Watch the board with: ordna list  (or ordna web).
   6. git init when you are ready; this script does not. Commit tasks/ with the code.
 EOF

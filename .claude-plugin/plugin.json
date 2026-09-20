@@ -1,5 +1,5 @@
 {
   "name": "agent-team-kit",
-  "version": "0.6.0",
-  "description": "Reusable software team: business-analyst, architect, developer and tester agents, a team workflow (TDD by vertical slice) tracked on an Ordna board (epics, stories, tasks), baseline requirements, stack packs (FastAPI or Quarkus backend, React or Angular frontend) and document templates."
+  "version": "0.7.0",
+  "description": "Reusable software team: business-analyst, architect, test-manager, developer and tester agents, a team workflow (TDD by vertical slice) tracked on an Ordna board (one card per user story, one column per agent), baseline requirements, stack packs (FastAPI or Quarkus backend, React or Angular frontend) and document templates."
 }

@@ -4,7 +4,7 @@ Status: draft
 Approved by: 
 Approved on: 
 
-<!-- Approval gate. Agents write "draft" and never change it. Only the user, after reading this document, replaces "draft" with the word approved on the Status line and fills in the two lines below it. Building a feature needs this document, docs/requirements.md and that feature's requirements file (docs/features/e-N-<slug>/requirements.md) all approved. An approved document is frozen: to change it, the user sets the status back to draft first. -->
+<!-- Approval gate. Agents write "draft" and never change it. Only the user, after reading this document, replaces "draft" with the word approved on the Status line and fills in the two lines below it. Building a feature needs this document, docs/business-prd.md and that feature's requirements file (docs/features/e-N-<slug>/business-prd.md) all approved. An approved document is frozen: to change it, the user sets the status back to draft first. -->
 
 ## 1. Overview
 Context, stack (see the backend and frontend packs), diagram.
@@ -44,7 +44,7 @@ Tables, types, constraints, indexes (which sort orders use which index), query s
 ## 12. Implementation plan – slices
 Rules: BL-FLOW-1 to BL-FLOW-6. S0 is a walking skeleton (thinnest usable end-to-end path). Order slices by time until a user gets value, not by layer. Every slice names how a user reaches it.
 
-The design is one document for the whole solution; the slices are grouped by feature. Every story of every feature requirements file (`docs/features/e-N-<slug>/requirements.md`) is one slice. A feature's slices are buildable only once that feature is approved. Adding a feature later means the user reopens this document (status back to draft) so the architect can add its slices.
+The design is one document for the whole solution; the slices are grouped by feature. Every story of every feature requirements file (`docs/features/e-N-<slug>/business-prd.md`) is one slice. A feature's slices are buildable only once that feature is approved. Adding a feature later means the user reopens this document (status back to draft) so the architect can add its slices.
 
 Board (skill `ordna-tasks`): every slice is one story with one `dev` and one `verify` task. Never split a slice by layer.
 

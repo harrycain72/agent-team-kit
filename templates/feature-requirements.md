@@ -4,13 +4,13 @@ Status: draft
 Approved by: 
 Approved on: 
 
-<!-- Approval gate. Agents write "draft" and never change it. Only the user, after reading this document, replaces "draft" with the word approved on the Status line and fills in the two lines below it. This feature is built only when this file, docs/requirements.md and docs/architecture.md are all approved. An approved document is frozen: to change it, the user sets the status back to draft first. -->
+<!-- Approval gate. Agents write "draft" and never change it. Only the user, after reading this document, replaces "draft" with the word approved on the Status line and fills in the two lines below it. This feature is built only when this file, docs/business-prd.md and docs/architecture.md are all approved. An approved document is frozen: to change it, the user sets the status back to draft first. -->
 
-<!-- One feature = one epic = one file. Save as docs/features/e-<N>-<slug>/requirements.md (slug: lower-case, digits, hyphens). The epic id E-N is the one in the feature index of docs/requirements.md. Story ids US-N are unique across the whole solution: look at the other feature files and the board for the highest one before numbering. Only stories of this epic go in this file. -->
+<!-- One feature = one epic = one file. Save as docs/features/e-<N>-<slug>/business-prd.md (slug: lower-case, digits, hyphens). The epic id E-N is the one in the feature index of docs/business-prd.md. Story ids US-N are unique across the whole solution: look at the other feature files and the board for the highest one before numbering. Only stories of this epic go in this file. -->
 
 Epic: E-<N>
 Board: `T-nnn` (tags `epic`, `e-<N>`)
-Solution context: docs/requirements.md (goal, scope, shared domain components, applied baseline)
+Solution context: docs/business-prd.md (goal, scope, shared domain components, applied baseline)
 
 ## 1. Feature goal, users, problem
 <one paragraph each; the one business goal of this epic>
@@ -38,18 +38,18 @@ The analyst creates one story per `US-N` here and the epic `E-<N>` (skill `ordna
 | US-<n> | T-nnn | M |
 
 ## 4. Baseline for this feature
-The applied baseline of docs/requirements.md holds. Deviations for this feature only (each with a reason; it becomes an assumption or an ADR):
+The applied baseline of docs/business-prd.md holds. Deviations for this feature only (each with a reason; it becomes an assumption or an ADR):
 - <none>
 
 ## 5. Feature-specific non-functional requirements
-(Only what neither the baseline nor docs/requirements.md §6 covers.)
+(Only what neither the baseline nor docs/business-prd.md §6 covers.)
 
 ## 6. Dependencies on other features
 | Needs | From (E-N / US-N) | Why |
 |---|---|---|
 | | | |
 
-Shared domain components used or changed (docs/requirements.md §3):
+Shared domain components used or changed (docs/business-prd.md §3):
 
 ## 7. Assumptions
 | ID | Assumption | Reversible how |
