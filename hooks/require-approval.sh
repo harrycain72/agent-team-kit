@@ -2,9 +2,10 @@
 # PreToolUse hook (Write, Edit, MultiEdit, NotebookEdit): the approval gate. Exit 2 blocks the call
 # and the message on stderr goes back to the agent.
 #
-# 1. Until docs/requirements.md and docs/architecture.md both say "Status: approved", nothing
+# 1. Until docs/requirements.md (solution overview), docs/architecture.md and at least one feature
+#    requirements file (docs/features/e-N-<slug>/requirements.md) say "Status: approved", nothing
 #    outside docs/, tasks/, .ordna/, CLAUDE.md, AGENTS.md and README.md may be written (no code,
-#    tests, configuration, scripts).
+#    tests, configuration, scripts). Which feature a source file belongs to is not known here.
 # 2. Once a document is approved, agents may not edit it: the user reopens it (sets Status back
 #    to draft) or makes the change.
 # 3. Agents may never write "Status: approved" into either document.
@@ -40,7 +41,11 @@ case "$REL" in
 esac
 
 DOC=""
-case "$REL" in docs/requirements.md) DOC=requirements ;; docs/architecture.md) DOC=architecture ;; esac
+case "$REL" in
+  docs/requirements.md) DOC=requirements ;;
+  docs/architecture.md) DOC=architecture ;;
+  docs/features/*/requirements.md) DOC="$(basename "$(dirname "$REL")")" ;;   # one per feature (epic)
+esac
 
 if [ -n "$DOC" ]; then
   if printf '%s' "$INPUT" | grep -Eiq 'status:[[:space:]]*[*_`]*approved'; then
@@ -55,7 +60,10 @@ fi
 case "$REL" in docs/*|tasks/*|.ordna/*|CLAUDE.md|AGENTS.md|README.md) exit 0 ;; esac
 
 R="$("$CHECK" --status requirements "$PROJ")"; A="$("$CHECK" --status architecture "$PROJ")"
-if [ "$R" != "approved" ] || [ "$A" != "approved" ]; then
-  deny "no code, tests or configuration until the user has approved both documents (docs/requirements.md: $R, docs/architecture.md: $A). Do not write $REL. Stop, tell the lead which document is waiting for approval, and continue with other work that is allowed (documents, tasks)."
+F="$("$CHECK" --approved-features "$PROJ" | tr '\n' ' ')"
+if [ "$R" != "approved" ] || [ "$A" != "approved" ] || [ -z "${F// /}" ]; then
+  deny "no code, tests or configuration until the user has approved the overview, the architecture and at least one feature (docs/requirements.md: $R, docs/architecture.md: $A, approved features: ${F:-none}). Do not write $REL. Stop, tell the lead which document is waiting for approval, and continue with other work that is allowed (documents, tasks)."
 fi
+# The hook cannot tell which feature a source file belongs to. Building only the approved
+# features is the agents' rule (run check-approval.sh --for E-N) and check-board.sh reports breaches.
 exit 0

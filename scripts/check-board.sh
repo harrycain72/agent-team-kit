@@ -5,7 +5,8 @@
 #
 #   project-dir   the project (default: the current directory)
 #   --stage       what has been delivered so far; later stages check more:
-#                 requirements  epics and stories exist and match docs/requirements.md
+#                 requirements  epics and stories exist and match the feature requirements files
+#                               (docs/features/e-N-<slug>/requirements.md, one per epic)
 #                 design        also: every story has a dev and a verify task
 #                 build         also: status and ownership rules (default)
 #
@@ -14,7 +15,7 @@
 
 set -euo pipefail
 
-usage() { sed -n '2,15p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; }
+usage() { sed -n '2,16p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; }
 die() { echo "error: $*" >&2; exit 2; }
 
 STAGE="build"; PROJ="."
@@ -117,6 +118,9 @@ while IFS= read -r e; do
   [ -n "$e" ] || continue
   ekey="$(tag_with_prefix "$e" 'e-[0-9]+$')"
   [ -n "$ekey" ] || { bad "$(label "$e"): epic without an e-N tag"; continue; }
+  if [ "$ekey" != "e-0" ] && [ -z "$(compgen -G "$PROJ/docs/features/$ekey-*/requirements.md" || compgen -G "$PROJ/docs/features/$ekey/requirements.md" || true)" ]; then
+    bad "$(label "$e"): no requirements file docs/features/$ekey-<slug>/requirements.md (one file per feature = epic)"
+  fi
   [ -n "$(field "$e" 5)" ] || bad "$(label "$e"): epic has no stories in depends_on (parent must depend on its children)"
   for d in $(field "$e" 5 | tr ',' ' '); do
     r="$(row_of "$d")"; [ -z "$r" ] || has_tag "$r" story || bad "$(label "$e"): depends_on $d, which is not a story"
@@ -162,13 +166,35 @@ if [ "$STAGE" != "requirements" ]; then
 fi
 
 # --- requirements versus board ----------------------------------------------------
-REQ="$PROJ/docs/requirements.md"
-if [ -f "$REQ" ]; then
-  REQ_IDS="$(sed -e '/([Ww])[[:space:]]*$/d' -n -e 's/^###[[:space:]]*US-\([0-9][0-9]*\).*/us-\1/p' "$REQ" | sort -u)"  # Won't stories get no board story
-  BOARD_IDS="$(echo "$STORIES" | tr '|' '\n' | tr ',' '\n' | grep -E '^us-[0-9]+$' | sort -u || true)"
-  for id in $REQ_IDS; do echo "$BOARD_IDS" | grep -qx "$id" || bad "docs/requirements.md has $id but the board has no story for it"; done
-  for id in $BOARD_IDS; do echo "$REQ_IDS" | grep -qx "$id" || bad "the board has a story $id that docs/requirements.md does not list"; done
+# One requirements file per feature (= epic): docs/features/e-N-<slug>/requirements.md holds the epic's
+# stories. docs/requirements.md is the solution overview and lists no stories.
+story_ids() { sed -e '/([Ww])[[:space:]]*$/d' -n -e 's/^###[[:space:]]*US-\([0-9][0-9]*\).*/us-\1/p' "$1" | sort -u; }  # Won't stories get no board story
+BOARD_IDS="$(echo "$STORIES" | tr '|' '\n' | tr ',' '\n' | grep -E '^us-[0-9]+$' | sort -u || true)"
+REQ_IDS=""
+OVERVIEW="$PROJ/docs/requirements.md"
+if [ -f "$OVERVIEW" ] && [ -n "$(story_ids "$OVERVIEW")" ]; then
+  bad "docs/requirements.md lists user stories ($(story_ids "$OVERVIEW" | tr '\n' ' ')): stories belong in docs/features/e-N-<slug>/requirements.md, one file per feature"
 fi
+for f in "$PROJ"/docs/features/*/requirements.md; do
+  [ -e "$f" ] || continue
+  rel="${f#"$PROJ"/}"; dir="$(basename "$(dirname "$f")")"
+  fkey="$(echo "$dir" | sed -n -E 's/^(e-[0-9]+)(-.*)?$/\1/p')"
+  if [ -z "$fkey" ]; then bad "$rel: the directory must start with the epic id, e-N-<slug>"; continue; fi
+  hdr="$(sed -n 's/^Epic:[[:space:]]*\(E-[0-9][0-9]*\).*/\1/p' "$f" | head -n 1 | tr 'A-Z' 'a-z')"
+  if [ -z "$hdr" ]; then bad "$rel: no 'Epic: E-N' line"
+  elif [ "$hdr" != "$fkey" ]; then bad "$rel: says Epic $hdr but its directory is $fkey"; fi
+  [ -n "$(echo "$EPICS" | grep -E "\|(.*,)?$fkey(,.*)?\|" || true)" ] || bad "$rel: the board has no epic with the tag $fkey"
+  for id in $(story_ids "$f"); do
+    REQ_IDS="$REQ_IDS$id"$'\n'
+    row="$(echo "$STORIES" | grep -E "\|(.*,)?$id(,.*)?\|" | head -n 1 || true)"
+    if [ -z "$row" ]; then bad "$rel has $id but the board has no story for it"
+    elif ! has_tag "$row" "$fkey"; then bad "$rel has $id, but the board story $(field "$row" 1) is not under epic $fkey (tag $(tag_with_prefix "$row" 'e-[0-9]+$'))"; fi
+  done
+done
+REQ_IDS="$(echo "$REQ_IDS" | grep . | sort | uniq -c | awk '$1 > 1 { print "dup " $2 } $1 == 1 { print $2 }' || true)"
+for id in $(echo "$REQ_IDS" | sed -n 's/^dup //p'); do bad "$id appears in more than one feature requirements file (story ids are unique across the solution)"; done
+REQ_IDS="$(echo "$REQ_IDS" | sed 's/^dup //' | sort -u)"
+for id in $BOARD_IDS; do echo "$REQ_IDS" | grep -qx "$id" || bad "the board has a story $id that no docs/features/*/requirements.md lists"; done
 
 # --- status and ownership (build stage) ---------------------------------------------
 if [ "$STAGE" = "build" ]; then
@@ -191,15 +217,25 @@ if [ "$STAGE" = "build" ]; then
     if has_tag "$row" dev && [ "$st" = "review" ] && [ "$open" -gt 0 ]; then bad "$(label "$row"): is in review but $open of its own criteria are still unticked"; fi
   done <<< "$TASKS$STORIES$EPICS"
 
-  # Build work must not have started before the user approved both documents.
+  # Build work must not have started before the user approved the overview, the architecture and the
+  # task's feature (E-0 Foundation: any approved feature).
   APPROVAL="$(dirname "${BASH_SOURCE[0]}")/check-approval.sh"
   if [ -x "$APPROVAL" ]; then
-    started="$(echo "$TASKS" | awk -F'|' 'NF > 1 && $2 != "todo" && $4 ~ /(^|,)(dev|verify|defect)(,|$)/ { printf "%s ", $1 }')"
-    if [ -n "$started" ]; then
+    ANY_FEATURE="$("$APPROVAL" --approved-features "$PROJ")"
+    while IFS= read -r t; do
+      [ -n "$t" ] || continue
+      [ "$(field "$t" 2)" != "todo" ] || continue
+      { has_tag "$t" dev || has_tag "$t" verify || has_tag "$t" defect; } || continue
+      tk="$(field "$t" 1)"; ek="$(tag_with_prefix "$t" 'e-[0-9]+$')"
       for d in requirements architecture; do
-        [ "$("$APPROVAL" --status "$d" "$PROJ")" = "approved" ] || bad "build tasks are already started ($started) but docs/$d.md is not approved by the user"
+        [ "$("$APPROVAL" --status "$d" "$PROJ")" = "approved" ] || bad "build task $tk is started but docs/$d.md is not approved by the user"
       done
-    fi
+      if [ -z "$ek" ] || [ "$ek" = "e-0" ]; then
+        [ -n "$ANY_FEATURE" ] || bad "build task $tk is started but no feature requirements file is approved by the user"
+      else
+        [ "$("$APPROVAL" --status "$ek" "$PROJ")" = "approved" ] || bad "build task $tk is started but the requirements of feature $ek are not approved by the user"
+      fi
+    done <<< "$TASKS"
   else
     bad "check-approval.sh is missing next to check-board.sh, so the approval gate cannot be checked"
   fi

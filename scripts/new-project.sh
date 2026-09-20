@@ -56,7 +56,7 @@ if [ -e "$DEST" ] && [ -n "$(ls -A "$DEST" 2>/dev/null)" ]; then
   die "$DEST exists and is not empty"
 fi
 
-mkdir -p "$DEST/.claude/agents" "$DEST/.claude/skills" "$DEST/.claude/templates" "$DEST/.claude/scripts" "$DEST/.claude/hooks" "$DEST/docs"
+mkdir -p "$DEST/.claude/agents" "$DEST/.claude/skills" "$DEST/.claude/templates" "$DEST/.claude/scripts" "$DEST/.claude/hooks" "$DEST/docs/features"
 
 # Roles, process, baseline, the shared stack conventions and the chosen backend and frontend packs
 # (other packs are not copied).
@@ -68,7 +68,7 @@ cp -r "$KIT/skills/team-workflow" "$KIT/skills/ordna-tasks" "$KIT/skills/baselin
 cp "$KIT/scripts/check-board.sh" "$KIT/scripts/check-approval.sh" "$DEST/.claude/scripts/"
 
 # The approval gate: a hook that blocks file-editing tools until the user has approved
-# docs/requirements.md and docs/architecture.md (see team-workflow, section 0).
+# the requirements (overview and feature files) and docs/architecture.md (see team-workflow, section 0).
 cp "$KIT/hooks/require-approval.sh" "$DEST/.claude/hooks/"
 cat > "$DEST/.claude/settings.json" <<'JSON'
 {
@@ -95,10 +95,13 @@ grep -q '^statuses: \[todo, doing, review, done\]' "$DEST/.ordna/config.yaml" ||
 cp -r "$KIT"/templates/. "$DEST/.claude/templates/"
 rm -f "$DEST/.claude/templates/CLAUDE.md.template"
 
-# Starter documents, one authoritative file each, with the project name filled in.
+# Starter documents, one authoritative file each, with the project name filled in. docs/requirements.md is
+# the solution overview; every feature (epic) gets its own docs/features/e-N-<slug>/requirements.md, which
+# the business-analyst creates from templates/feature-requirements.md.
 for f in requirements.md architecture.md test-plan.md tdd-log.md; do
   sed "s/<Project>/$NAME/g" "$KIT/templates/$f" > "$DEST/docs/$f"
 done
+touch "$DEST/docs/features/.gitkeep"
 
 # CLAUDE.md pins the kit version and names the packs.
 sed -e "s/<Project name>/$NAME/" \
@@ -119,20 +122,23 @@ Created $DEST (agent-team-kit $VERSION)
   backend pack:  $BACKEND
   frontend pack: $FRONTEND
   version pinned in CLAUDE.md and .claude/agent-team-kit.version
-  Approval gate: hook in .claude/settings.json blocks code until you approve both documents
+  Approval gate: hook in .claude/settings.json blocks code until you approve the overview, the architecture
+                 and at least one feature
   Ordna board: tasks/ (columns todo, doing, review, done), AGENTS.md, skill ordna-tasks
 
 Next steps:
   1. Edit $DEST/CLAUDE.md: overrides with reasons, project rules, commands.
      Do this before running any agent.
-  2. Run the business-analyst -> docs/requirements.md plus epics and stories on the board.
+  2. Run the business-analyst -> docs/requirements.md (overview, feature index), one
+     docs/features/e-N-<slug>/requirements.md per feature (= epic), and epics and stories on the board.
      Then: .claude/scripts/check-board.sh --stage requirements
   3. Run the architect -> docs/architecture.md plus a dev and a verify task per story;
      check S0 is a walking skeleton and every slice has a user entry point (BL-FLOW).
      Then: .claude/scripts/check-board.sh --stage design
-  4. YOU review both documents and set "Status:" to the word approved in each file, and fill in
-     Approved by / on. Until then the hook blocks all code, tests and configuration.
-     State: .claude/scripts/check-approval.sh
+  4. YOU review the documents and set "Status:" to the word approved in each file, and fill in
+     Approved by / on: docs/requirements.md, docs/architecture.md and every feature you want built.
+     Until then the hook blocks all code, tests and configuration; a feature is built only once its own
+     file is approved. State: .claude/scripts/check-approval.sh  (or --for E-N)
   5. Build slice by slice (developer), verify each slice through the real UI (tester);
      agents update their tasks as they go. Watch the board with: ordna list  (or ordna web).
   6. git init when you are ready; this script does not. Commit tasks/ with the code.

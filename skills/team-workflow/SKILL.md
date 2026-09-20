@@ -11,26 +11,36 @@ The work is tracked on the **Ordna board** (https://ordna.sh, `tasks/`) as epics
 
 ## 0. Approval gate (the user, before any code)
 
-`docs/requirements.md` and `docs/architecture.md` each carry a `Status:` line. Agents write `Status: draft`. **Only the user sets it to approved**, after reading the document, by editing the file (with `Approved by` and `Approved on`). **Until both documents are approved, no agent (developer, tester, the lead, any other) writes code, tests, configuration or scripts.** Documents, the test plan and the board (`tasks/`) may be written meanwhile.
+A solution is a set of **features**; a feature is an **epic**. The requirements are therefore several documents, and each carries a `Status:` line:
 
-- The lead, when a document is finished, asks the user to review it and to set the status; it does not set it, and does not start the build without it. `.claude/scripts/check-approval.sh` reports the state (exit 0 only when both are approved).
-- An approved document is frozen. A change (a defect in the design, a new requirement) goes to the lead, the user reopens the document by setting the status back to `draft`, the owner edits it, and the user approves again. Work that depends on the changed part stops until then.
-- The rule is enforced by a hook (`.claude/hooks/require-approval.sh`, registered in `.claude/settings.json`) that blocks file-editing tools, and reported by `check-board.sh`. The hook does not see shell commands that write files, so the agents' instructions forbid them too.
+| Document | Holds | Path |
+|---|---|---|
+| Overview | goal, scope, shared domain, feature index, applied baseline | `docs/requirements.md` |
+| Feature requirements, one per epic | the epic `E-N` and its user stories | `docs/features/e-N-<slug>/requirements.md` |
+| Architecture | one design for the whole solution | `docs/architecture.md` |
+
+Agents write `Status: draft`. **Only the user sets it to approved**, after reading the document, by editing the file (with `Approved by` and `Approved on`). **A feature may be built only when the overview, the architecture and that feature's own requirements file are approved. Until then no agent (developer, tester, the lead, any other) writes code, tests, configuration or scripts for it.** Documents, the test plan and the board (`tasks/`) may be written meanwhile.
+
+- Approval is per feature, so a feature the user has reviewed can be built while others are still being specified. The user approves the files one at a time.
+- The lead, when a document is finished, asks the user to review it and to set the status; it does not set it, and does not start the build without it. `.claude/scripts/check-approval.sh` reports the state of every document (exit 0 when the overview, the architecture and at least one feature are approved); `check-approval.sh --for E-N` answers for one feature (exit 0 only when that feature may be built). The developer and the tester run it with the `e-N` tag of their task.
+- An approved document is frozen. A change (a defect in the design, a new requirement) goes to the lead, the user reopens the document by setting the status back to `draft`, the owner edits it, and the user approves again. Work that depends on the changed part stops until then. A new feature needs a new file and a new row in the overview's feature index (reopen the overview), and its slices need the architecture reopened.
+- Reopening the overview or the architecture stops **all** building (the hook cannot tell which feature a source file belongs to); reopening one feature's file stops that feature's tasks only, by rule and by `check-board.sh`.
+- The rule is enforced by a hook (`.claude/hooks/require-approval.sh`, registered in `.claude/settings.json`) that blocks file-editing tools until the overview, the architecture and at least one feature are approved, and reported by `check-board.sh`, which also flags a started task whose own feature is not approved. The hook does not see shell commands that write files or which feature a source file belongs to, so the agents' instructions cover both.
 
 ## 1. Stages and handoffs
 
 | Stage | Owner | Input | Output (the contract) | Done when |
 |---|---|---|---|---|
-| Requirements | business-analyst | the idea, `CLAUDE.md`, baseline requirements | `docs/requirements.md` (`Status: draft`) + an epic per goal and a story per `US-N` on the board | stories have testable acceptance criteria; assumptions and open questions listed; `check-board.sh --stage requirements` passes |
-| Design | architect | requirements | `docs/architecture.md` (`Status: draft`; + ADRs, slice plan) + a `dev` and a `verify` task per story | every open question resolved as an ADR; slice plan ordered; tag and package versions checked; `check-board.sh --stage design` passes |
-| Build | developer(s) | design; **both documents approved by the user** | code, tests, TDD log entries; `dev` task `doing` then `review` | slice green, `make check` (or equivalent) green |
+| Requirements | business-analyst | the idea, `CLAUDE.md`, baseline requirements | `docs/requirements.md` (overview, feature index) + one `docs/features/e-N-<slug>/requirements.md` per feature (all `Status: draft`) + an epic per feature and a story per `US-N` on the board | stories have testable acceptance criteria; assumptions and open questions listed; every epic has its file; `check-board.sh --stage requirements` passes |
+| Design | architect | the overview and all feature files | `docs/architecture.md` (`Status: draft`; + ADRs, slice plan) + a `dev` and a `verify` task per story | every open question resolved as an ADR; slice plan ordered; tag and package versions checked; `check-board.sh --stage design` passes |
+| Build | developer(s) | design; **overview, architecture and the feature's requirements approved by the user** | code, tests, TDD log entries; `dev` task `doing` then `review` | slice green, `make check` (or equivalent) green |
 | Verify | tester | slice + acceptance criteria | test plan, extra tests, defect tasks; story criteria ticked; `verify` and `dev` tasks `done` | each criterion pass / fail / not tested, observed not assumed |
 
 Rules of the handoff:
 - **Files are the contract.** Each stage writes its result to a named file and ends its turn with a short summary and the path. Do not paste long documents into messages.
 - **One authoritative file per stage.** No draft variants left in the tree (a stray second requirements draft caused confusion once).
 - **No editing upstream.** A downstream agent that finds a defect in an upstream document reports it to the lead; the owner changes it.
-- **Independent stages run in parallel.** For example, backend and frontend developers on different slices, the tester's plan while the architect designs.
+- **Independent stages run in parallel.** For example, backend and frontend developers on different slices, the tester's plan while the architect designs. Features are independent units of requirements work too: several analysts may draft different feature files at the same time, but the lead hands out the `E-N` ids first and creates the board items one feature at a time (story ids `US-N` are global, and so are Ordna's `T-nnn` ids).
 - **The lead verifies.** After every agent report, re-run the checks (tests, lint, coverage) yourself before accepting, and run `.claude/scripts/check-board.sh` to see that the board matches what was reported. Reports are claims. Only the lead moves a story or epic to `done`.
 - **The board is updated as work changes state.** Each role claims its task before starting, moves it to `review` when finished (developer) or `done` (tester, after verifying), and never marks its own work `done`. A role that finishes without updating the board has not finished.
 - If agents cannot message each other, all handoffs go through the lead. Design to need few of them.
@@ -52,7 +62,7 @@ Why not tester-writes-tests-first for whole layers: it serialised the work (deve
 
 ## 3. Definition of done (per slice)
 
-- [ ] Both documents were approved by the user before the first line of code (the approval is in the file, not in a chat message)
+- [ ] The overview, the architecture and this feature's requirements file were approved by the user before the first line of code (the approval is in the file, not in a chat message)
 - [ ] Failing-test evidence exists and the tests were written before the code
 - [ ] Every new source module has its unit test file (enforced by a mapping test, not by review)
 - [ ] Full check green: lint and format, layer rules, type check, all unit and integration tests, coverage gates (defaults: 90 % backend, 80 % frontend; see `baseline-requirements`)
@@ -61,7 +71,7 @@ Why not tester-writes-tests-first for whole layers: it serialised the work (deve
 - [ ] End-to-end test for the slice exists and passes, referenced by story id (BL-FLOW-5); no orphaned endpoint or UI action (BL-FLOW-6)
 - [ ] Refactor step done; API docs and README updated if behaviour or run instructions changed
 - [ ] Board: `dev` and `verify` tasks are `done`, every story criterion is ticked by the tester, no `defect` task is open, and `check-board.sh` passes
-- [ ] The lead re-ran the check and saw it pass, then moved the story (and its epic, when all its stories are done) to `done`
+- [ ] The lead re-ran the check and saw it pass, then moved the story (and its epic, i.e. the feature, when all its stories are done) to `done`
 
 ## 4. Practical rules learned
 

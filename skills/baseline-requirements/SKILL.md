@@ -19,7 +19,7 @@ General requirements that apply to most web applications, split by topic under `
 
 ## How a project uses them
 
-In the project's `docs/requirements.md`, a short section "Applied baseline":
+In the project's `docs/requirements.md` (the solution overview), a short section "Applied baseline". It holds for every feature; a feature file may add deviations for that feature only, each with a reason:
 
 ```
 Applies: BL-API-*, BL-SEC-*, BL-A11Y-*, BL-TEST-*, BL-FLOW-*

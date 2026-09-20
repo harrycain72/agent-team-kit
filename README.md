@@ -1,6 +1,6 @@
 # agent-team-kit
 
-A reusable four-role software team (business-analyst, architect, developer, tester), the workflow they follow, reusable baseline requirements, composable stack packs (backend, frontend, common) and document templates. Extracted from the todo-app build (2026-09-19). Version 0.5.0.
+A reusable four-role software team (business-analyst, architect, developer, tester), the workflow they follow, reusable baseline requirements, composable stack packs (backend, frontend, common) and document templates. Extracted from the todo-app build (2026-09-19). Version 0.6.0.
 
 ## What is here
 
@@ -20,7 +20,7 @@ scripts/check-project.sh      read-only check of a project's pinned version, boa
 scripts/check-approval.sh     read-only: have both documents been approved by the user?
 hooks/require-approval.sh     PreToolUse hook: blocks code, tests and configuration until they are
 scripts/check-board.sh        read-only check that the project's Ordna board follows the ordna-tasks conventions
-templates/                    requirements, architecture, ADR, test plan, TDD log, CLAUDE.md, arc42 skeleton
+templates/                    requirements (solution overview), feature-requirements (one per feature), architecture, ADR, test plan, TDD log, CLAUDE.md, arc42 skeleton
 .claude-plugin/               plugin.json + marketplace.json (to install the kit as a plugin)
 CHANGELOG.md
 ```
@@ -37,9 +37,24 @@ CHANGELOG.md
 
 Agents never name project files; they read the project's `CLAUDE.md`, which names the kit version, the backend and frontend packs, the applied baseline and any overrides.
 
+## Features, epics and requirements files
+
+An app is a set of **features**. A feature is an **epic** (`E-N`); an epic has n **user stories** (`US-N`); a solution therefore has n epics and **n requirements files**:
+
+```
+docs/
+  requirements.md                        solution overview: goal, scope, shared domain, feature index, applied baseline (no stories)
+  features/
+    e-1-login/requirements.md            feature = epic E-1 and its stories US-1..US-3
+    e-2-checkout/requirements.md         feature = epic E-2 and its stories US-4..US-9
+  architecture.md                        one design for the whole solution; slice plan grouped by feature
+```
+
+The business-analyst writes one file per feature (`templates/feature-requirements.md`) and adds it to the feature index. `E-N` and `US-N` are unique across the solution; the directory starts with the epic id, which is how `check-board.sh` and `check-approval.sh` map a feature to its board epic. `E-0 Foundation` (the walking skeleton, made by the architect) has no requirements file.
+
 ## Approval gate
 
-The requirements and the architecture each begin with `Status: draft`. **You approve them**: read the document, replace `draft` with the word `approved` on that line and fill in `Approved by` / `Approved on`. Agents never set it. Until both are approved, a hook (`.claude/hooks/require-approval.sh`, registered in `.claude/settings.json` by `new-project.sh`) blocks every file write outside `docs/`, `tasks/`, `.ordna/`, `CLAUDE.md`, `AGENTS.md` and `README.md`, for every agent including the lead. An approved document is frozen; to change it, set it back to `draft`. State: `.claude/scripts/check-approval.sh`. Limits: the hook sees file-editing tools, not shell commands that write files (the agents are told not to, and `check-board.sh` reports build work started before approval), and it is a guardrail against agents, not against you.
+Every requirements file (overview and each feature) and the architecture begin with `Status: draft`. **You approve them**: read the document, replace `draft` with the word `approved` on that line and fill in `Approved by` / `Approved on`. Agents never set it. **Approval is per feature:** a feature may be built only when the overview, the architecture and that feature's own file are approved, so a reviewed feature can be built while others are still being specified. Until the overview, the architecture and at least one feature are approved, a hook (`.claude/hooks/require-approval.sh`, registered in `.claude/settings.json` by `new-project.sh`) blocks every file write outside `docs/`, `tasks/`, `.ordna/`, `CLAUDE.md`, `AGENTS.md` and `README.md`, for every agent including the lead. An approved document is frozen; to change it, set it back to `draft`. State: `.claude/scripts/check-approval.sh` (all documents) or `--for E-N` (may this feature be built?). Limits: the hook sees file-editing tools, not shell commands that write files, and it cannot tell which feature a source file belongs to (the agents run `--for E-N` and are told not to write files through the shell; `check-board.sh` reports build tasks started before approval, per feature), and it is a guardrail against agents, not against you. Reopening the overview or the architecture stops all building; reopening a feature file stops that feature only.
 
 ## Task board (Ordna)
 
@@ -47,7 +62,7 @@ Requires [Ordna](https://ordna.sh#install): `npm install -g @frehilm/ordna-cli`.
 
 | Level | Created by | Updated by |
 |---|---|---|
-| Epic `E-N` (tags `epic`, `e-N`) | business-analyst | lead closes it when all its stories are done |
+| Epic `E-N` = a feature, with its own requirements file (tags `epic`, `e-N`) | business-analyst | lead closes it when all its stories are done |
 | Story `US-N` (one vertical slice; the analyst's criteria as checkboxes) | business-analyst | tester ticks criteria as observed; lead closes it |
 | Task `dev` / `verify` | architect | developer: claim, progress, `review`; tester: claim, verify, `done` |
 | Task `defect` | tester | developer fixes and sets `review`; tester closes |
@@ -67,7 +82,7 @@ scripts/new-project.sh shop --frontend stack-frontend-angular                   
 scripts/new-project.sh shop --backend stack-backend-quarkus-bce --frontend stack-frontend-angular
 ```
 
-By default the project is created in the directory that contains this kit (so next to the kit's own repository); `--root` overrides that. It requires `ordna` on the PATH (and stops with the install command if it is missing), runs `ordna init --storage=file` in the project, sets the columns to `todo, doing, review, done`, writes `AGENTS.md`, and copies `agents/`, `team-workflow`, `ordna-tasks`, `baseline-requirements`, `stack-common`, the chosen backend and frontend packs and the templates into `<project>/.claude/`, writes `CLAUDE.md` (with the kit version pinned) and `.claude/agent-team-kit.version`, and the starter documents in `docs/`, and never runs `git init`. Then fill in `CLAUDE.md` before running any agent.
+By default the project is created in the directory that contains this kit (so next to the kit's own repository); `--root` overrides that. It requires `ordna` on the PATH (and stops with the install command if it is missing), runs `ordna init --storage=file` in the project, sets the columns to `todo, doing, review, done`, writes `AGENTS.md`, and copies `agents/`, `team-workflow`, `ordna-tasks`, `baseline-requirements`, `stack-common`, the chosen backend and frontend packs and the templates into `<project>/.claude/`, writes `CLAUDE.md` (with the kit version pinned) and `.claude/agent-team-kit.version`, and the starter documents in `docs/`, and never runs `git init`. Then fill in `CLAUDE.md` before running any agent; ask the business-analyst for one feature at a time.
 
 To see whether an existing project is behind the kit or has drifted from it:
 
@@ -83,7 +98,7 @@ Manual steps, if you prefer:
    - **Plugin:** `claude plugin marketplace add <path-or-repo-of-this-kit>` then `claude plugin install agent-team-kit@agent-team-kit`.
    - **Copy:** copy `agents/*.md` to `<project>/.claude/agents/` (or `~/.claude/agents/` for all projects) and `skills/*` to `.claude/skills/`.
 2. Copy `templates/CLAUDE.md.template` to `<project>/CLAUDE.md` and fill it in (kit version, backend and frontend packs, overrides). Copy `stack-common`, one `stack-backend-*` and one `stack-frontend-*` from `skills/`.
-3. Run the business-analyst with `templates/requirements.md`, referencing baseline IDs; then the architect with `templates/architecture.md` and `adr.md` (and `templates/arc42/` if wanted); then build slice by slice as in `skills/team-workflow`.
+3. Run the business-analyst with `templates/requirements.md` (overview) and one `templates/feature-requirements.md` per feature, referencing baseline IDs; then the architect with `templates/architecture.md` and `adr.md` (and `templates/arc42/` if wanted); then build slice by slice as in `skills/team-workflow`.
 4. Give each agent its instructions before it starts, and enable the tools they need to hand off.
 
 ## Versioning
@@ -91,6 +106,8 @@ Manual steps, if you prefer:
 Semantic versioning in `plugin.json` and `CHANGELOG.md`. A project pins the version in its `CLAUDE.md`. Improve the kit from what each project teaches you, and note it in the changelog.
 
 ## Not verified yet (check before relying on it)
+
+- **Features (0.6.0):** `check-approval.sh`, the hook and `check-board.sh` were tested on a hand-made project with simulated hook input (per-feature approval, wrong epic file, duplicate story ids, stories in the overview, started tasks in an unapproved feature). `new-project.sh` and `check-project.sh` were run end to end, and `check-board.sh --stage requirements` was run against real `ordna` tasks and a feature file made from the template. Not observed: analysts actually splitting a real app into feature files, and several analysts drafting features in parallel.
 
 - **Approval hook in Claude Code itself:** the hook script and `check-approval.sh` were tested with simulated hook input (JSON on stdin, exit 2 to block). That Claude Code invokes the hook with these exact field names (`tool_input.file_path`), matcher and `CLAUDE_PROJECT_DIR`, and that it also covers subagents, has not been observed in a live session. Start a real project, ask any agent to write a source file before approving, and confirm it is blocked.
 - **Ordna board:** verified by hand against `@frehilm/ordna-cli` 0.4.0 (`ordna --version` prints 0.0.0): `init --storage=file`, custom `review` status, tags and `-d` on `create`, `depends_on` blocking `move ... done` in the parent-depends-on-children direction, `skill install`, and `check-board.sh` on positive and negative boards. **Not verified:** that the agents follow `ordna-tasks` in a real run (that is what `check-board.sh` is for), and parallel agents editing task files at once. The web UI (`ordna web`) was not started.

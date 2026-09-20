@@ -9,17 +9,18 @@
 - Task board: Ordna (https://ordna.sh), skill `ordna-tasks`; epics, stories and tasks in `tasks/`
 
 ## Approval gate
-- No code, tests or configuration are written until the user has set `Status: approved` in both `docs/requirements.md` and `docs/architecture.md`. Agents never set it and never edit an approved document. Check: `.claude/scripts/check-approval.sh`.
+- A feature is built only when the user has set `Status: approved` in `docs/requirements.md`, `docs/architecture.md` and that feature's own `docs/features/e-N-<slug>/requirements.md`. Until then no code, tests or configuration are written for it. Agents never set it and never edit an approved document. Check: `.claude/scripts/check-approval.sh` (all documents) or `--for E-N` (one feature).
 
 ## Requirements
-- Project requirements: docs/requirements.md
+- Solution: docs/requirements.md (overview: goal, scope, shared domain, feature index, applied baseline)
+- Features: one requirements file per feature (= epic): docs/features/e-N-<slug>/requirements.md, with its user stories
 - Applied baseline: BL-API-*, BL-SEC-*, BL-A11Y-*, BL-OPS-*, BL-TEST-*, BL-FLOW-*
 - Overrides and exclusions (each with a reason):
   - <none yet>
 
 ## Task board (Ordna)
 - Tasks are markdown files in `tasks/` (`ordna list`, `ordna show <id>`); config in `.ordna/config.yaml`; upstream agent guide in `AGENTS.md`.
-- Hierarchy: epic (`E-N`) > user story (`US-N`) > task (`dev`, `verify`, `defect`), by tags and `depends_on`. See the `ordna-tasks` skill; it wins over `AGENTS.md`.
+- Hierarchy: epic (`E-N`, = a feature with its own requirements file) > user story (`US-N`) > task (`dev`, `verify`, `defect`), by tags and `depends_on`. See the `ordna-tasks` skill; it wins over `AGENTS.md`.
 - Every agent claims its task before starting, updates it as the work changes state, and never marks its own work `done`. Nobody runs `ordna commit`; the lead commits.
 - Check: `.claude/scripts/check-board.sh` (installed by the kit).
 

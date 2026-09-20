@@ -1,10 +1,12 @@
-# <Project> – Requirements
+# <Project> – Requirements (solution overview)
 
 Status: draft
 Approved by: 
 Approved on: 
 
-<!-- Approval gate. Agents write "draft" and never change it. Only the user, after reading this document, replaces "draft" with the word approved on the Status line and fills in the two lines below it. Until both this document and the other one are approved, no code, tests or configuration are written. An approved document is frozen: to change it, the user sets the status back to draft first. -->
+<!-- Approval gate. Agents write "draft" and never change it. Only the user, after reading this document, replaces "draft" with the word approved on the Status line and fills in the two lines below it. Building a feature needs this document, docs/architecture.md and that feature's own requirements file all approved. An approved document is frozen: to change it, the user sets the status back to draft first. -->
+
+<!-- Scope of this file. The solution is a set of features. Each feature is one epic (E-N) and has its own requirements file, docs/features/e-N-<slug>/requirements.md, with the epic's user stories (template: feature-requirements.md). This file holds only what is shared by all features. It contains no user stories. -->
 
 ## 1. Goal, users, problem
 <one paragraph each>
@@ -13,38 +15,25 @@ Approved on:
 ### In scope (MVP)
 ### Out of scope (Won't)
 
-## 3. Business domain components
-| Component | Description |
-|---|---|
+## 3. Business domain components (shared by the features)
+| Component | Description | Used by (E-N) |
+|---|---|---|
 
-## 4. Functional requirements – user stories
-Priority: M(ust) / S(hould) / C(ould) / W(on't).
+## 4. Features (epics)
+One row per feature. The requirements file is authoritative for the feature; keep this index current. Feature files live in `docs/features/e-N-<slug>/requirements.md`. Epic ids are unique across the solution and never reused.
 
-### E-1 <epic title>
-One business goal; its stories follow. Board: `T-nnn` (tags `epic`, `e-1`).
-
-### US-1 <title> (M)
-Epic: E-1. Board: `T-nnn` (tags `story`, `us-1`, `e-1`).
-As a <role>, I want <capability>, so that <benefit>.
-Acceptance criteria (one checkbox each on the board story, ticked by the tester):
-1. Given <context>, when <action>, then <result>.
-2. Validation: <limits, error responses>.
-3. Edge cases: <...>
-
-### Board (Ordna)
-The analyst creates one story per `US-N` and one epic per `E-N` (skill `ordna-tasks`). Keep this table current.
-
-| Epic | Story | Board id | Priority |
-|---|---|---|---|
-| E-1 | US-1 | T-nnn | M |
+| Epic | Feature | Requirements file | Priority | Depends on | Board id |
+|---|---|---|---|---|---|
+| E-1 | <feature> | docs/features/e-1-<slug>/requirements.md | M | – | T-nnn |
 
 ## 5. Applied baseline (see the baseline-requirements skill)
-Applies: BL-...
+Applies to every feature: BL-...
 Overrides (with reason):
 Excluded (with reason):
+(A feature may deviate further; it says so in its own file, with a reason.)
 
-## 6. Project-specific non-functional requirements
-(Only what the baseline does not cover.)
+## 6. Solution-wide non-functional requirements
+(Only what the baseline does not cover and that holds for every feature.)
 
 ## 7. Assumptions
 | ID | Assumption | Reversible how |
@@ -59,4 +48,4 @@ Excluded (with reason):
 | OQ-1 | | | |
 
 ## 10. Hand-off to the architect
-Summary of assumptions and open questions that affect the design.
+Summary of the assumptions and open questions that affect the design as a whole. Feature-specific ones are in the feature files.
