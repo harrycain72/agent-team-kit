@@ -25,7 +25,7 @@ Test databases (unique name per run), how data is created, isolated and reset, s
 Each test names the criterion it covers (BL-TEST-7); red-before-green evidence in docs/tdd-log.md; how the test plans map criteria to cases.
 
 ## 6. Coverage gates and entry/exit criteria
-Numbers and how they are measured; when a slice may go to `verification`, when it may go to `done`.
+Numbers and how they are measured; when a slice may go to `functional-test`, when it may go to `done`.
 
 ## 7. Non-functional testing
 Accessibility, security, performance (only where the baseline applies it), responsiveness.

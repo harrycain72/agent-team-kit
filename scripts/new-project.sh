@@ -87,7 +87,7 @@ JSON
 
 # Ordna board: file storage (agents edit the markdown; a bare "ordna init" prompts and fails without a
 # terminal), one column per agent role, and the upstream agent guide (AGENTS.md).
-STATUSES="todo, requirements, design, test-planning, development, verification, done"
+STATUSES="todo, general-planning, business-design, technical-design, test-design, development, functional-test, perf-test, done"
 (cd "$DEST" && ordna init --storage=file >/dev/null && ordna skill install >/dev/null)
 sed -i "s/^statuses:.*/statuses: [$STATUSES]/" "$DEST/.ordna/config.yaml"
 grep -qF "statuses: [$STATUSES]" "$DEST/.ordna/config.yaml" || die "could not set the board statuses in $DEST/.ordna/config.yaml"

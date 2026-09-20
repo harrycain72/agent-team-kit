@@ -121,9 +121,9 @@ echo "Ordna board"
 if command -v ordna >/dev/null 2>&1; then note "ordna installed"; else flag "ordna is not installed (npm install -g @frehilm/ordna-cli, https://ordna.sh#install)"; fi
 if [ -f "$PROJ/.ordna/config.yaml" ]; then
   grep -q '^storage: file' "$PROJ/.ordna/config.yaml" && note "storage: file" || flag "storage is not 'file' in .ordna/config.yaml (agents need the markdown files)"
-  grep -Eq '^statuses: \[todo, requirements, design, test-planning, development, verification, done\]' "$PROJ/.ordna/config.yaml" \
+  grep -Eq '^statuses: \[todo, general-planning, business-design, technical-design, test-design, development, functional-test, perf-test, done\]' "$PROJ/.ordna/config.yaml" \
     && note "statuses: one column per agent role" \
-    || flag "statuses are not [todo, requirements, design, test-planning, development, verification, done] in .ordna/config.yaml"
+    || flag "statuses are not [todo, general-planning, business-design, technical-design, test-design, development, functional-test, perf-test, done] in .ordna/config.yaml"
 else
   flag ".ordna/config.yaml is missing: run 'ordna init --storage=file' in the project (the kit's ordna-tasks skill needs it)"
 fi

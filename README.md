@@ -1,6 +1,6 @@
 # agent-team-kit
 
-A reusable five-role software team (business-analyst, architect, test-manager, developer, tester), the workflow they follow, reusable baseline requirements, composable stack packs (backend, frontend, common) and document templates. Extracted from the todo-app build (2026-09-19). Version 0.7.0.
+A reusable six-role software team (business-analyst, architect, test-manager, developer, tester, perf-tester), the workflow they follow, reusable baseline requirements, composable stack packs (backend, frontend, common) and document templates. Extracted from the todo-app build (2026-09-19). Version 0.7.0.
 
 ## What is here
 
@@ -62,12 +62,13 @@ The business PRDs (overview and each feature), `docs/architecture.md` and each f
 
 ## Task board (Ordna)
 
-Requires [Ordna](https://ordna.sh#install): `npm install -g @frehilm/ordna-cli`. Work is tracked as **one card per user story**, stored as markdown in the project's `tasks/`, on a board with **one column per agent role**, so the board shows which agent has a story: `todo` → `requirements` (business-analyst) → `design` (architect) → `test-planning` (test-manager) → `development` (developer) → `verification` (tester) → `done`. The assignee is the agent who has the card now.
+Requires [Ordna](https://ordna.sh#install): `npm install -g @frehilm/ordna-cli`. Work is tracked as **one card per user story**, stored as markdown in the project's `tasks/`, on a board with **one column per agent role**, so the board shows which agent has a story: `todo` → `general-planning` (business-analyst, architect and test-manager in turn, solution card only) → `business-design` (business-analyst) → `technical-design` (architect) → `test-design` (test-manager) → `development` (developer, unit tests included) → `functional-test` (tester) → `perf-test` (perf-tester) → `done`. The assignee is the agent who has the card now.
 
 | Card | Created by | Updated by |
 |---|---|---|
-| Requirements card, one per feature (`E-N requirements: <feature>`, tags `requirements`, `e-N`) | business-analyst | analyst writes; then waits for your approval in `verification` (assignee `user`); lead closes it |
-| Story card `US-N` (tags `story`, `us-N`, `e-N`; the analyst's criteria as checkboxes) | business-analyst | architect adds build checklist, verification items and notes; test-manager plans cases; developer builds and ticks the checklist; tester ticks criteria as observed and lists defects; lead closes it |
+| General-planning card, one per solution (`General planning: <solution>`, tags `planning`, `general`) | lead | analyst (overview), architect (architecture), test-manager (test strategy) hand it on with `ordna assign`; then `user` approves; lead closes it |
+| Requirements card, one per feature (`E-N requirements: <feature>`, tags `requirements`, `e-N`) | business-analyst | analyst writes; then waits for your approval in `business-design` (assignee `user`); lead closes it |
+| Story card `US-N` (tags `story`, `us-N`, `e-N`; the analyst's criteria as checkboxes) | business-analyst | architect adds build checklist, verification items and notes; test-manager plans cases; developer builds and ticks the checklist; tester ticks criteria as observed and lists defects; perf-tester measures the performance criteria; lead closes it |
 | Walking skeleton `S0` (tags `story`, `s0`, `e-0`) | architect | as a story card |
 
 Ordna has no epics or subtasks; a feature is the tag `e-N` and its files, and a story lists the earlier story it builds on in `depends_on`. The `development` column is entered only by the developer's own claim, after `check-approval.sh --for E-N` passes. The rules, the status protocol and the exact commands are in `skills/ordna-tasks`. Agents never commit, including `ordna commit`.
@@ -87,7 +88,7 @@ scripts/new-project.sh shop --frontend stack-frontend-angular                   
 scripts/new-project.sh shop --backend stack-backend-quarkus-bce --frontend stack-frontend-angular
 ```
 
-By default the project is created in the directory that contains this kit (so next to the kit's own repository); `--root` overrides that. It requires `ordna` on the PATH (and stops with the install command if it is missing), runs `ordna init --storage=file` in the project, sets the columns to `todo, requirements, design, test-planning, development, verification, done`, writes `AGENTS.md`, and copies `agents/`, `team-workflow`, `ordna-tasks`, `baseline-requirements`, `stack-common`, the chosen backend and frontend packs and the templates into `<project>/.claude/`, writes `CLAUDE.md` (with the kit version pinned) and `.claude/agent-team-kit.version`, and the starter documents in `docs/`, and never runs `git init`. Then fill in `CLAUDE.md` before running any agent; ask the business-analyst for one feature at a time, then the architect and the test-manager.
+By default the project is created in the directory that contains this kit (so next to the kit's own repository); `--root` overrides that. It requires `ordna` on the PATH (and stops with the install command if it is missing), runs `ordna init --storage=file` in the project, sets the columns to `todo, general-planning, business-design, technical-design, test-design, development, functional-test, perf-test, done`, writes `AGENTS.md`, and copies `agents/`, `team-workflow`, `ordna-tasks`, `baseline-requirements`, `stack-common`, the chosen backend and frontend packs and the templates into `<project>/.claude/`, writes `CLAUDE.md` (with the kit version pinned) and `.claude/agent-team-kit.version`, and the starter documents in `docs/`, and never runs `git init`. Then fill in `CLAUDE.md` before running any agent; ask the business-analyst for one feature at a time, then the architect and the test-manager.
 
 To see whether an existing project is behind the kit or has drifted from it:
 

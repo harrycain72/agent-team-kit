@@ -6,7 +6,7 @@
 - Backend pack: stack-backend-fastapi-bce  (or stack-backend-quarkus-bce)
 - Frontend pack: stack-frontend-react  (or stack-frontend-angular)
 - Process: team-workflow (TDD by vertical slice, usable early per BL-FLOW, definition of done)
-- Agents (`.claude/agents/`): business-analyst, architect, test-manager, developer, tester
+- Agents (`.claude/agents/`): business-analyst, architect, test-manager, developer, tester, perf-tester
 - Task board: Ordna (https://ordna.sh), skill `ordna-tasks`; one card per user story plus one requirements card per feature, in `tasks/`
 
 ## Approval gate
@@ -21,10 +21,10 @@
 
 ## Task board (Ordna)
 - Tasks are markdown files in `tasks/` (`ordna list`, `ordna show <id>`); config in `.ordna/config.yaml`; upstream agent guide in `AGENTS.md`. The `ordna-tasks` skill defines the model and wins over `AGENTS.md`.
-- Columns (`statuses` in `.ordna/config.yaml`), **one per agent role, so the board shows which agent has a story**: `todo` → `requirements` (business-analyst) → `design` (architect) → `test-planning` (test-manager) → `development` (developer) → `verification` (tester) → `done`. A card sits in the column of the agent who has it now, and the assignee is that agent (`todo` = nobody has claimed it yet; `done` = closed by the lead). An agent claims a card (`ordna assign`, `ordna move`) before working on it and hands it to the next agent's column when finished. **The `development` column is entered only by the developer's own claim, after `check-approval.sh` passes for the feature**; the test-manager hands a planned story to `todo` (assignee `developer`).
-- One card per user story (`US-N`, walking skeleton `S0`) and one requirements card per feature; no epic, `dev`, `verify` or `defect` cards. Tick criteria and checklist items one by one at the moment they hold, never in a batch.
+- Columns (`statuses` in `.ordna/config.yaml`), **one per agent role, so the board shows which agent has a story**: `todo` → `general-planning` (the solution's general documents; business-analyst, architect and test-manager in turn) → `business-design` (business-analyst) → `technical-design` (architect) → `test-design` (test-manager) → `development` (developer; includes the unit tests) → `functional-test` (tester) → `perf-test` (perf-tester, skipped for a story with no performance criterion) → `done`. A card sits in the column of the agent who has it now, and the assignee is that agent (`todo` = nobody has claimed it yet; `done` = closed by the lead). An agent claims a card (`ordna assign`, `ordna move`) before working on it and hands it to the next agent's column when finished. **The `development` column is entered only by the developer's own claim, after `check-approval.sh` passes for the feature**; the test-manager hands a planned story to `todo` (assignee `developer`).
+- One card per user story (`US-N`, walking skeleton `S0`), one requirements card per feature and one general-planning card per solution (tags `planning`, `general`, created by the lead, kept in `general-planning`, assignee changes with the document being written); no epic, `dev`, `verify` or `defect` cards. Tick criteria and checklist items one by one at the moment they hold, never in a batch.
 - Every agent claims its card before starting, updates it as the work changes state, and never moves its own work to `done`; the lead closes cards. Nobody runs `ordna commit`; the lead commits.
-- Check: `.claude/scripts/check-board.sh` (installed by the kit; it still checks the previous epic/`dev`/`verify` model, see the kit's CHANGELOG, so its errors about those are expected).
+- Check: `.claude/scripts/check-board.sh` (installed by the kit).
 
 ## Documents (one authoritative file each)
 - General architecture: docs/architecture.md (**only what is valid for all features**: layout, tooling, cross-cutting rules, general ADRs, the S0 walking skeleton; nothing feature-specific)
