@@ -2,11 +2,12 @@
 
 Semantic versioning. Projects pin a version in their `CLAUDE.md`; bump the kit only deliberately.
 
-## Unreleased – nine board columns, perf-tester, updated check-board.sh
-Taken over from the task-manager project, where these changes were made on 2026-09-20 (not yet released as a version; bump deliberately).
+## 0.8.0 – nine board columns, perf-tester, updated check-board.sh
+Released 2026-09-21. Taken over from the task-manager project, where these changes were made on 2026-09-20.
 - **Board columns renamed and extended:** `todo`, `general-planning`, `business-design`, `technical-design`, `test-design`, `development` (unit tests included), `functional-test`, `perf-test`, `done` (was `todo`, `requirements`, `design`, `test-planning`, `development`, `verification`, `done`). `general-planning` holds the one general-planning card per solution (tags `planning`, `general`), whose assignee moves business-analyst (overview) → architect (architecture) → test-manager (test strategy) → user; story cards never enter it. The requirements card stays in `business-design` (assignee `business-analyst` while writing, `user` while waiting for approval).
 - **New agent `perf-tester`** (`agents/perf-tester.md`): measures a story that passed `functional-test` against its performance criteria; `perf-test` is skipped (with a `## Progress` line) for a story with no performance criterion. The team now has six roles; `team-workflow` gains a Performance test stage.
 - **`scripts/check-board.sh` rewritten** for the current model (it no longer checks epics, `dev`/`verify`/`defect` tasks or the `review` status): the nine statuses, exactly one general-planning card, one requirements card per feature file, story cards matched with the feature files' `US-N`, assignee = the agent of the column, Build checklist and Verification sections from `test-design` on, done cards fully ticked with dependencies done, and the approval gate for stories in `development` or later. This closes the known gap of 0.7.0.
+- Also in this release: `rulesets/main-branch-ruleset.json`, a default-branch ruleset for the open-source repository (PR required, linear history, signed commits).
 - Upgrading a 0.7.0 project: copy `agents/` (incl. `perf-tester.md`), `skills/ordna-tasks`, `skills/team-workflow`, `scripts/check-board.sh`, `scripts/check-project.sh`, `templates/`; set `statuses` in `.ordna/config.yaml` to the nine columns and move cards in a renamed column (`requirements`→`business-design`, `design`→`technical-design`, `test-planning`→`test-design`, `verification`→`functional-test`); create the general-planning card; update the columns in the project's `CLAUDE.md`.
 
 ## 0.7.0 – test-manager, per-feature document set, one card per story
