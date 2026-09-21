@@ -1,6 +1,6 @@
 # agent-team-kit
 
-A reusable six-role software team (business-analyst, architect, test-manager, developer, tester, perf-tester), the workflow they follow, reusable baseline requirements, composable stack packs (backend, frontend, common) and document templates. Extracted from the todo-app build (2026-09-19). Version 0.7.0.
+A reusable six-role software team (business-analyst, architect, test-manager, developer, tester, perf-tester), the workflow they follow, reusable baseline requirements, composable stack packs (backend, frontend, common) and document templates. Extracted from the todo-app build (2026-09-19). Version 0.8.0.
 
 ## What is here
 
